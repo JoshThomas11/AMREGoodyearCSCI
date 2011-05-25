@@ -6,10 +6,11 @@ import ij.plugin.filter.*;
 import ij.measure.ResultsTable;
 import java.util.*;
 
+import java.awt.event.*;
+import javax.swing.*;
 
 
 // Versatile_Wand begins here
-
 import ij.measure.Calibration;
 
 
@@ -417,15 +418,119 @@ class Versatile_Wand {
 			//IJ.log("weights:"+(float)v[0]+","+(float)v[1]+","+(float)v[2]);
 			}
 }
-
 // Versatile_Wand ends here
 
 
+// Option_Window begins here
+class Option_Window extends JPanel implements ActionListener, ItemListener
+{
+	public static boolean invertCheck, cropCheck, finished;
 
-// @author?
+	JCheckBox opt1;
+	JCheckBox opt2;
+	protected static JButton OKButton;
+	private static JFrame frame;
+
+	public Option_Window()
+	{
+		super(new GridLayout(3,1));
+
+		invertCheck = false;
+		cropCheck = false;
+		finished = false;
+
+		JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+		JLabel instructs = new JLabel("<html>Select which options should be performed<br>on the input image.</html>");
+		topPanel.add(instructs);
+		add(topPanel);
+
+		JPanel checkBoxPanel = new JPanel(new FlowLayout());
+		opt1 = new JCheckBox("Invert LUT");
+		opt1.setMnemonic(KeyEvent.VK_I);
+		opt1.setSelected(false);
+		opt2 = new JCheckBox("Auto Crop Image");
+		opt2.setMnemonic(KeyEvent.VK_C);
+		opt2.setSelected(false);
+		opt1.addItemListener(this);
+		opt2.addItemListener(this);
+
+		checkBoxPanel.add(opt1);
+		checkBoxPanel.add(opt2);
+
+		add(checkBoxPanel);
+
+		JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+		OKButton = new JButton("OK");
+		OKButton.setMnemonic(KeyEvent.VK_O);
+		OKButton.setActionCommand("OK");
+		OKButton.addActionListener(this);
+
+		buttonPanel.add(OKButton);
+
+		add(buttonPanel);
+	}
+
+	private static void setup()
+	{
+		frame = new JFrame("Process Selector");
+		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+
+		JComponent contentPane = new Option_Window();
+		contentPane.setOpaque(true);
+		frame.setContentPane(contentPane);
+		frame.getRootPane().setDefaultButton(OKButton);
+		frame.pack();
+		frame.setLocationRelativeTo(null);
+		frame.setVisible(true);
+	}
+
+	public void itemStateChanged(ItemEvent e)
+	{
+		Object box = e.getItemSelectable();
+		if(opt1 == box)
+			invertCheck = true;
+		else
+		{
+			if(opt2 == box)
+				cropCheck = true;
+		}
+
+		if(e.getStateChange() == ItemEvent.DESELECTED)
+		{
+			if(opt1 == box)
+				invertCheck = false;
+			else
+			{
+				if(opt2 == box)
+					cropCheck = false;
+			}
+		}
+	}
+
+	public void actionPerformed(ActionEvent e)
+	{
+		if ("OK".equals(e.getActionCommand()))
+		{
+			finished = true;
+			frame.dispose();
+		}
+	}
+
+	public static void start()
+	{
+		javax.swing.SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				setup();
+			}
+		});
+	}
+}
+
 /**
  * This Plugin does a thing.  C'est vrai.
  *
+ * @author		Benn Snyder
+ * @author		Josh Thomas
  * @version		1.6
  * @since		2011.0520
  */
@@ -524,35 +629,41 @@ public class New_Plugin implements PlugInFilter
 
 		this.ip = ip;
 
-		// Invert image
-		ip.invert();
-		// Crop
-		autoCrop();
+		Option_Window ow = new Option_Window();
+		ow.start();
+		while (!ow.finished)
+		{
+			pause(500);
+		}
+
+		if (ow.invertCheck)
+		{
+			// Invert image
+			ip.invert();
+		}
+		if (ow.cropCheck)
+		{
+			// Crop
+			autoCrop();
+		}
 		// Despeckle
 		despeckle();
 		// Threshold
 		threshold();
 
-
 		// Run watershed
 		IJ.run(imp, "Watershed", "");
-
 
 		// Analyze particles
 		IJ.run("Set Measurements...", "area shape redirect=None decimal=3");
 		//IJ.run("Analyze Particles...");
 		IJ.run("Analyze Particles...", "show=Outlines display exclude clear record");
-
-		imp.updateAndDraw();
+		//IJ.run("Analyze Particles...", "display exclude clear record");
 
 		// Get results
 		ResultsTable rt = ResultsTable.getResultsTable();
-		int numResults = rt.getCounter();
-
-
-		/*
 		Vector<Integer> overlappingParticles = new Vector();
-		for (int i = 0; i < numResults; i++)
+		for (int i = 0; i < rt.getCounter(); i++)
 		{
 			//System.out.println((i+1) + " | Area = " + rt.getValue("Area", i));
 			//System.out.println((i+1) + " | Circ. = " + rt.getValue("Circ.", i));
@@ -563,14 +674,18 @@ public class New_Plugin implements PlugInFilter
 			}
 		}
 
-		System.out.println(overlappingParticles.size());
 
-		for (int i = 0; i < overlappingParticles.size(); i++)
-		{
+
+
+		//System.out.println(overlappingParticles.size());
+
+		//for (int i = 0; i < overlappingParticles.size(); i++)
+		//{
 			//System.out.println(rt.getValue("XStart", overlappingParticles.elementAt(i)));
-		}
-		*/
+		//}
 
+
+		imp.updateAndDraw();
 
 		// relock image?
 		imp.lock();
