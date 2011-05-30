@@ -6,12 +6,11 @@ import ij.plugin.filter.*;
 import ij.measure.ResultsTable;
 import java.util.*;
 
+import ij.measure.Calibration;
+
 import java.awt.event.*;
 import javax.swing.*;
 
-
-// Versatile_Wand begins here
-import ij.measure.Calibration;
 
 
 /** An ImageJ magic wand with selectable tolerance, variable hue or
@@ -115,7 +114,6 @@ import ij.measure.Calibration;
   *											NullPointerException fixed.
   */
 
-//class Versatile_Wand implements ExtendedPlugInFilter, DialogListener {
 class Versatile_Wand {
 	private final static int EIGHT_CONNECTED=0, FOUR_CONNECTED=1, NON_CONTIGUOUS=2;
 	private final static int UNKNOWN=0, OUTSIDE=1, INSIDE=-1;  //mask pixel values
@@ -418,10 +416,8 @@ class Versatile_Wand {
 			//IJ.log("weights:"+(float)v[0]+","+(float)v[1]+","+(float)v[2]);
 			}
 }
-// Versatile_Wand ends here
 
 
-// Option_Window begins here
 /**
  * A JPanel window that is launched at the start of the execution of the main plugin.
  * The window provides checkboxes that toggle options (Invert LUT, Select/Crop Image)
@@ -430,8 +426,7 @@ class Versatile_Wand {
  *
  * @author Benn Snyder
  * @author Josh Thomas
- * @version 0.1
- * @since 0.6
+ * @version 0.1, 05/25/11
  */
 class Option_Window extends JPanel implements ActionListener, ItemListener
 {
@@ -599,13 +594,93 @@ class Option_Window extends JPanel implements ActionListener, ItemListener
 	}
 }
 
+
+/**
+ * This class implements the Schwartz-Salkitov algorithm, as defined in Corte and Leibler (2005).
+ * 
+ * @author Benn Snyder
+ * @author Ruth Steinhour
+ * @author Josh Thomas
+ * @version 0.2, 05/25/11
+ */
+class Alg
+{
+	public static double[] CorteAlg(Vector< Double > data, int nBins, int thick, double area)
+	{
+		double max = Collections.max(data);
+		double min = Collections.min(data);
+		double delta = (max-min)/nBins;
+		
+		Vector< Double > Na = new Vector(nBins+1);
+		
+		double sum = 0;
+		
+		for(int i = 0; i <= nBins; i++)
+		{
+			for(int j = 0; j < data.size(); j++)
+			{
+				if((data.elementAt(j) >= delta*i) && (data.elementAt(j) <= delta*(i+1)))
+				{
+					sum++;
+				}
+			}
+			Na.add(i, (sum/area));
+			sum = 0;
+		}
+		
+		double[][] A = new double[nBins+1][nBins+1];
+			
+		for(int i = 1; i <= nBins+1; i++)
+		{
+			for(int j = 1; j <= nBins+1; j++)
+			{
+				if(i == j)
+				{
+					A[i-1][j-1] = thick+delta*Math.sqrt(Math.pow((j+1),2)-Math.pow(i,2));					
+				}
+				else
+				{
+					if(i < j)
+					{
+						A[i-1][j-1] = delta*(Math.sqrt(Math.pow((j+1),2)-Math.pow(i,2))-Math.sqrt(Math.pow(j,2)-Math.pow(i,2)));
+					}
+					else
+					{
+						A[i-1][j-1] = 0;
+					}
+				}
+			}
+		}
+		
+		double[] Nv = new double[nBins+1];
+		
+		Nv[nBins] = Na.lastElement() / A[nBins][nBins];
+		
+		for(int k = nBins-1; k >= 0; k--)
+		{
+			sum = 0;
+			for(int q = 0; q < nBins+1; q++)
+			{
+				if(q >= k)
+				{
+					sum += A[k][q] * Nv[q];
+				}
+			}
+			Nv[k] = (Na.elementAt(k) - sum) / A[k][k];
+		}
+		return Nv;
+	}
+}
+
+
+
+
 /**
  * This Plugin does a thing.  C'est vrai.
  *
  * @author		Benn Snyder
  * @author		Josh Thomas
- * @version		0.6
- * @since		2011.0520
+ * @version		0.6.1, 05/20/11
  */
 public class New_Plugin implements PlugInFilter
 {
@@ -730,7 +805,8 @@ public class New_Plugin implements PlugInFilter
 		// Analyze particles
 		IJ.run("Set Measurements...", "area shape redirect=None decimal=3");
 		//IJ.run("Analyze Particles...");
-		IJ.run("Analyze Particles...", "show=Outlines display exclude clear record");
+		//IJ.run("Analyze Particles...", "show=Outlines display exclude clear record");
+		IJ.run("Analyze Particles...", "show=Outlines display clear record");
 		//IJ.run("Analyze Particles...", "display exclude clear record");
 
 		// Get results
@@ -743,15 +819,98 @@ public class New_Plugin implements PlugInFilter
 
 			if (rt.getValue("Circ.", i) < 0.85)
 			{
-				overlappingParticles.addElement(i);
+				overlappingParticles.add(i);
 			}
 		}
 
 		//System.out.println(overlappingParticles.size());
 
-		for (int i = 0; i < overlappingParticles.size(); i++)
+		//for (int i = 0; i < overlappingParticles.size(); i++)
+		//{
+		//	System.out.println(rt.getValue("XStart", overlappingParticles.elementAt(i)));
+		//}
+		
+		Vector<Double> imageData = new Vector();
+		for (int i = 0; i < rt.getCounter(); i++)
 		{
-			System.out.println(rt.getValue("XStart", overlappingParticles.elementAt(i)));
+			imageData.add(2*Math.sqrt(rt.getValue("Area", i) / Math.PI));
+		}
+		
+		
+		
+		/*
+		Vector<Double> sampleData = new Vector();
+		sampleData.add(10.5851);
+		sampleData.add(15.7973);
+		sampleData.add(11.6174);
+		sampleData.add(17.8412);
+		sampleData.add(13.7273);
+		sampleData.add(17.9834);
+		sampleData.add(11.3961);
+		sampleData.add(16.2737);
+		sampleData.add(7.0467);
+		sampleData.add(18.0541);
+		sampleData.add(11.7265);
+		sampleData.add(7.1365);
+		sampleData.add(15.9577);
+		sampleData.add(18.0893);
+		sampleData.add(15.7973);
+		sampleData.add(13.5406);
+		sampleData.add(17.6258);
+		sampleData.add(11.6174);
+		sampleData.add(11.9416);
+		sampleData.add(11.3961);
+		sampleData.add(16.1559);
+		sampleData.add(6.9558);
+		sampleData.add(17.9834);
+		sampleData.add(11.2838);
+		sampleData.add(13.7273);
+		sampleData.add(17.9480);
+		sampleData.add(13.7273);
+		sampleData.add(18.2992);
+		sampleData.add(11.7265);
+		sampleData.add(17.9125);
+		sampleData.add(11.9416);
+		sampleData.add(13.5406);
+		sampleData.add(13.5406);
+		sampleData.add(17.8412);
+		sampleData.add(6.3831);
+		sampleData.add(11.7265);
+		sampleData.add(17.8412);
+		sampleData.add(17.9834);
+		sampleData.add(18.1595);
+		sampleData.add(15.9577);
+		sampleData.add(6.5795);
+		sampleData.add(17.0007);
+		sampleData.add(15.0967);
+		
+		for (int i = 0; i < imageData.size(); i++)
+		{
+			System.out.println(Math.abs(imageData.elementAt(i) - sampleData.elementAt(i)));
+		}
+		System.out.println();
+		System.out.println();
+		
+		double sum1 = 0;
+		double sum2 = 0;
+		
+		for (int i = 0; i < imageData.size(); i++)
+		{
+			sum1 += imageData.elementAt(i);
+			sum2 += sampleData.elementAt(i);
+		}
+		System.out.println(sum1 - sum2);		
+		
+		System.out.println();
+		*/
+		
+		
+		
+		double[] results = Alg.CorteAlg(imageData, 5, 0, imp.getWidth() * imp.getHeight());
+		
+		for (int i = 0; i < results.length; i++)
+		{
+			System.out.println(results[i]);
 		}
 
 
