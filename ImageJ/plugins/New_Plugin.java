@@ -11,6 +11,9 @@ import ij.measure.Calibration;
 import java.awt.event.*;
 import javax.swing.*;
 
+//import java.math.*;
+
+import ptolemy.plot.Plot;
 
 
 /** An ImageJ magic wand with selectable tolerance, variable hue or
@@ -432,11 +435,12 @@ class Option_Window extends JPanel implements ActionListener, ItemListener
 {
 	// Boolean variables determining whether Invert LUT and Auto Crop Image are selected
 	// Also, keeps track of if the window has been closed
-	public static boolean invertCheck, cropCheck, finished;
+	public static boolean invertCheck, cropCheck, includeNegatives, finished;
 
 	// Swing objects
 	JCheckBox opt1; // Checkbox for Invert LUT
 	JCheckBox opt2; // Checkbox for Auto Crop Image
+	JCheckBox opt3; // Checkbox for Include Negatives
 	protected static JButton OKButton; // OK Button
 	private static JFrame frame; // Main JFrame for the window
 
@@ -452,6 +456,7 @@ class Option_Window extends JPanel implements ActionListener, ItemListener
 		// Initializes the boolean variables to false, as the window has first been created
 		invertCheck = false;
 		cropCheck = false;
+		includeNegatives = false;
 		finished = false;
 
 		// First panel of components in the window (with components centered)
@@ -477,13 +482,21 @@ class Option_Window extends JPanel implements ActionListener, ItemListener
 		opt2.setMnemonic(KeyEvent.VK_C);
 		// Sets the initial state of the checkbox to be unchecked
 		opt2.setSelected(false);
-		// Adds an item listener to both checkboxes
+		// Creates the checkbox for including negative values in the distribution
+		opt3 = new JCheckBox("Include Negatives");
+		// Sets the Key Event for the checkbox
+		opt3.setMnemonic(KeyEvent.VK_C);
+		// Sets the initial state of the checkbox to be unchecked
+		opt3.setSelected(false);
+		// Adds an item listener to all checkboxes
 		opt1.addItemListener(this);
 		opt2.addItemListener(this);
+		opt3.addItemListener(this);
 
 		// Adds both checkboxes to the panel
 		checkBoxPanel.add(opt1);
 		checkBoxPanel.add(opt2);
+		checkBoxPanel.add(opt3);
 
 		// Adds the panel to the window
 		add(checkBoxPanel);
@@ -550,6 +563,10 @@ class Option_Window extends JPanel implements ActionListener, ItemListener
 		{
 			if(opt2 == box)
 				cropCheck = true;
+			else if (opt3 == box)
+			{
+				includeNegatives = true;
+			}
 		}
 
 		// If, in fact, the checkbox was deselected, then set the value to false
@@ -561,6 +578,10 @@ class Option_Window extends JPanel implements ActionListener, ItemListener
 			{
 				if(opt2 == box)
 					cropCheck = false;
+				else if (opt3 == box)
+				{
+					includeNegatives = false;
+				}
 			}
 		}
 	}
@@ -605,13 +626,14 @@ class Option_Window extends JPanel implements ActionListener, ItemListener
  */
 class Alg
 {
+	static Vector< Double > Na;
 	public static double[] CorteAlg(Vector< Double > data, int nBins, int thick, double area)
 	{
 		double max = Collections.max(data);
 		double min = Collections.min(data);
 		double delta = (max-min)/nBins;
 		
-		Vector< Double > Na = new Vector(nBins+1);
+		Na = new Vector(nBins+1);
 		
 		double sum = 0;
 		
@@ -673,6 +695,127 @@ class Alg
 }
 
 
+class Graph_Window extends JPanel
+{
+	static JFrame frame;
+	static Vector<Double> Na;
+	static double[] Nv0;
+	static double[] Nv60;
+	static double[] Nv100;
+	static double max;
+	static int nBins;
+	
+	static Plot p;
+	
+	public Graph_Window(Vector<Double> Na, double[] Nv0, double[] Nv60, double[] Nv100, double max, int nBins) // Pass in Na, Nv, max, nBins
+	{
+		this.Na = Na;
+		this.Nv0 = Nv0;
+		this.Nv60 = Nv60;
+		this.Nv100 = Nv100;
+		this.max = max;
+		this.nBins = nBins;
+	}
+		
+	public Graph_Window()
+	{
+		super(new BorderLayout());
+		
+		JPanel graphPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+
+
+		p = new Plot();
+		p.setSize(750, 500);
+		p.setTitle("Plot of CDFs, 2-D Distribution, 3-D Distribution (H = 0, H = 60, H = 100)");
+		p.setGrid(false);
+		p.setYRange(0, 100);
+		p.setXRange(max/(nBins+1), (max*(nBins+2))/(nBins+1));		
+		p.setYLabel("Cumulative number, percent under size");
+		p.setXLabel("Diameter (px)");
+		p.setMarksStyle("none");
+        p.setImpulses(true);
+        p.setButtons(true);
+        
+
+		
+		double tsumA = 0, tsumV0 = 0, tsumV60 = 0, tsumV100 = 0;
+		double csumA = 0, csumV0 = 0, csumV60 = 0, csumV100 = 0;
+		
+		for (int i = 0; i < Na.size(); i++)
+		{
+			tsumA += Na.elementAt(i);
+			tsumV0 += Nv0[i];
+			tsumV60 += Nv60[i];
+			tsumV100 += Nv100[i];
+		}
+		
+		boolean connected = false;
+		
+		for (int i = 1; i <= nBins+1; i++)
+		{
+			csumA += Na.elementAt(i-1);
+			csumV0 += Nv0[i-1];
+			csumV60 += Nv60[i-1];
+			csumV100 += Nv100[i-1];
+						
+			p.addPoint(0, i*(max/(nBins+1)), (csumA/tsumA)*100, connected);
+			p.addPoint(1, i*(max/(nBins+1)), (csumV0/tsumV0)*100, connected);
+			p.addPoint(2, i*(max/(nBins+1)), (csumV60/tsumV60)*100, connected);
+			p.addPoint(3, i*(max/(nBins+1)), (csumV100/tsumV100)*100, connected);
+			
+			connected = true;
+		}
+		
+		p.fillPlot();
+		
+		p.addLegend(0, "2-D Distribution");
+		p.addLegend(1, "H = 0 px");
+		p.addLegend(2, "H = 60 px");
+		p.addLegend(3, "H = 100 px");
+		
+		graphPanel.add(p);
+		
+		add(graphPanel, BorderLayout.CENTER);
+	}
+	
+	/**
+	 * Creates the JFrame for the window and adds the content pane defined 
+	 * in the default constructor to the JFrame. Also sets the location of
+	 * the window on the screen, sets the default button, and sets the
+	 * window to be visible.
+	 */
+	private static void setup()
+	{
+		// Creates the JFrame with the title of "Process Selector"
+		frame = new JFrame("Graph of 2-D CDF and 3-D CDF");
+		
+		// Creates a JComponent from the default constructor
+		JComponent contentPane = new Graph_Window();
+		// Makes the content pane non-transparent
+		contentPane.setOpaque(true);
+		// Sets the content pane of the frame to be the content pane created by the constructor
+		frame.setContentPane(contentPane);		
+		// Packs all of the components into the frame to prepare to make it visible
+		frame.pack();
+		// Sets the location of the frame in the center of the screen
+		frame.setLocationRelativeTo(null);
+		// Pops the frame up
+		frame.setVisible(true);
+	}
+	
+	/**
+	 * Driver method for the class. Invokes the setup method to generate the window.
+	 */
+	public static void start()
+	{
+		// Runs the setup method to generate the window.
+		javax.swing.SwingUtilities.invokeLater(new Runnable() {
+											   public void run() {
+											   setup();
+											   }
+											   });
+	}
+}
 
 
 /**
@@ -904,14 +1047,27 @@ public class New_Plugin implements PlugInFilter
 		System.out.println();
 		*/
 		
+		int nBins = 5;
 		
+		double[] results = Alg.CorteAlg(imageData, nBins, 0, imp.getWidth() * imp.getHeight());
+		double[] results2 = Alg.CorteAlg(imageData, nBins, 60, imp.getWidth() * imp.getHeight());
+		double[] results3 = Alg.CorteAlg(imageData, nBins, 100, imp.getWidth() * imp.getHeight());
 		
-		double[] results = Alg.CorteAlg(imageData, 5, 0, imp.getWidth() * imp.getHeight());
-		
-		for (int i = 0; i < results.length; i++)
+		if (!ow.includeNegatives)
 		{
-			System.out.println(results[i]);
+			for (int i = 0; i < results.length; i++)
+			{
+				// overhead?
+				results[i] = Math.max(0, results[i]);
+				results2[i] = Math.max(0, results2[i]);
+				results3[i] = Math.max(0, results3[i]);
+			}
 		}
+		
+		
+		double max = Collections.max(imageData);
+		Graph_Window gw = new Graph_Window(Alg.Na, results, results2, results3, max, nBins);
+		gw.start();
 
 
 		imp.updateAndDraw();
