@@ -1,19 +1,57 @@
+/*
+ * +-----------------+
+ * | New_Plugin.java |
+ * +-----------------+
+ * A plugin written for Goodyear Tire and Rubber Company to be used in the open-source
+ * program ImageJ. This plugin implements the Schwartz-Saltikov algorithm (see
+ * "Analysis of polymer blend morphologies from transmission election micrographs" by
+ * L. Corté and L. Leibler) to produce a 3-D particle distribution from a 2-D particle
+ * distribution that was obtained from a cross-section scan of rubber by an electron
+ * microscope.
+ *
+ * Written by: Benn Snyder - benn.snyder@gmail.com
+ *             Ruth Steinhour - rasteinhour@gmail.com
+ *             Joshua Thomas - jet4416@gmail.com
+ *
+ * Date last modified: May 31, 2011
+ * Version: 0.6.5
+*/
+
+/*
+ * +-----------------+
+ * | Package Imports |
+ * +-----------------+
+*/
+
+// ImageJ Packages
 import ij.*;
 import ij.process.*;
 import ij.gui.*;
-import java.awt.*;
 import ij.plugin.filter.*;
 import ij.measure.ResultsTable;
-import java.util.*;
-
 import ij.measure.Calibration;
 
+// Java Packages
+import java.awt.*;
+import java.util.*;
 import java.awt.event.*;
 import javax.swing.*;
 
+// Pt Plot Packages
 import ptolemy.plot.Plot;
 
 
+/*
+ * +-------------------+
+ * | Class Definitions |
+ * +-------------------+
+*/
+
+/*
+ * Versatile Wand
+ * Written by: Michael Schmid
+ * A wand selection tool extension, used in this plugin to auto-crop source images.
+*/
 /** An ImageJ magic wand with selectable tolerance, variable hue or
   * grayscale preference for RGB, gradient detection for grayscale,
   * 4-connected, 8-connected or disconnected operation and preview.
@@ -115,7 +153,8 @@ import ptolemy.plot.Plot;
   *											NullPointerException fixed.
   */
 
-class Versatile_Wand {
+class Versatile_Wand
+{
 	private final static int EIGHT_CONNECTED=0, FOUR_CONNECTED=1, NON_CONTIGUOUS=2;
 	private final static int UNKNOWN=0, OUTSIDE=1, INSIDE=-1;  //mask pixel values
 	// dialog parameters
@@ -418,9 +457,12 @@ class Versatile_Wand {
 			}
 }
 
-
+/*
+ * Option Window
+ * A JFrame window used to toggle options during the plugin's execution.
+*/
 /**
- * A JPanel window that is launched at the start of the execution of the main plugin.
+ * A JFrame window that is launched at the start of the execution of the main plugin.
  * The window provides checkboxes that toggle options (Invert LUT, Select/Crop Image)
  * in the main plugin. These options are controlled by the boolean variables invertCheck
  * and cropCheck. The boolean variable finished determines when the window has been closed.
@@ -614,9 +656,12 @@ class Option_Window extends JPanel implements ActionListener, ItemListener
 	}
 }
 
-
+/*
+ * Alg
+ * A class used to compute the Schwartz-Saltikov algorithm.
+*/
 /**
- * This class implements the Schwartz-Salkitov algorithm, as defined in Corte and Leibler (2005).
+ * This class implements the Schwartz-Salkitov algorithm, as defined in Corté and Leibler (2005).
  *
  * @author Benn Snyder
  * @author Ruth Steinhour
@@ -625,32 +670,56 @@ class Option_Window extends JPanel implements ActionListener, ItemListener
  */
 class Alg
 {
+	// Global variable definitions
 	static Vector< Double > Na;
-	public static double[] CorteAlg(Vector< Double > data, int nBins, int thick, double area)
+	
+	/**
+	 * The main function of the class. Computes the Schwartz-Saltikov algorithm from
+	 * the given input parameters.
+	 *
+	 * @param data Input data from ImageJ, consisting of the diameters of each particle in pixels
+	 * @param nBins The number of bins computed by ImageJ that the particles are placed into
+	 * @param thick The thickness of the slice/cross-section in pixels
+	 * @param area The area of the image, computed by multiplying the cropped image's width and height
+	 *
+	 * @return Nv The 3-D particle distribution, stored as an array of doubles
+	*/
+	public static double[] SSAlg(Vector< Double > data, int nBins, int thick, double area)
 	{
+		// Finds the minimum and maximum diameters from the data
 		double max = Collections.max(data);
 		double min = Collections.min(data);
+		
+		// Computes delta, the bin width
 		double delta = (max-min)/nBins;
 
+		// Constructs Na, the 2-D particle distribution
 		Na = new Vector(nBins+1);
 
+		// "counter" variable used to determine the values in Na
 		double sum = 0;
 
+		// Nested looping structure that determines sum for each entry in Na and assigns (sum/area)
+		// to each entry in Na
 		for(int i = 0; i <= nBins; i++)
 		{
 			for(int j = 0; j < data.size(); j++)
 			{
+				// Checks to see if the diameter in data falls within the range [i*delta, (i+1)*delta]
 				if((data.elementAt(j) >= delta*i) && (data.elementAt(j) <= delta*(i+1)))
 				{
 					sum++;
 				}
 			}
+			// Stores the value in Na
 			Na.add(i, (sum/area));
 			sum = 0;
 		}
 
+		// Constructs the transition matrix, A (note that A is an upper-triangular matrix)
 		double[][] A = new double[nBins+1][nBins+1];
 
+		// "Piecewise" definition of A (see Corté's paper, p. 6363)
 		for(int i = 1; i <= nBins+1; i++)
 		{
 			for(int j = 1; j <= nBins+1; j++)
@@ -673,15 +742,19 @@ class Alg
 			}
 		}
 
+		// Constructs Nv, the 3-D distribution of the particles
 		double[] Nv = new double[nBins+1];
 
-		Nv[nBins] = Na.lastElement() / A[nBins][nBins];
+		// Back-substitution implementation
+		Nv[nBins] = Na.lastElement() / A[nBins][nBins]; // Assigns the last element of Nv to be Na's last element divided by A[last][last]
 
+		// Back-populates Nv - k = rows, q = columns
 		for(int k = nBins-1; k >= 0; k--)
 		{
 			sum = 0;
 			for(int q = 0; q < nBins+1; q++)
 			{
+				// Only care when we are at or above the main diagonal, as A is upper-triangular
 				if(q >= k)
 				{
 					sum += A[k][q] * Nv[q];
@@ -689,13 +762,32 @@ class Alg
 			}
 			Nv[k] = (Na.elementAt(k) - sum) / A[k][k];
 		}
+		// Returns the 3-D distribution
 		return Nv;
 	}
 }
 
-
+/*
+ * Graph Window
+ * A JFrame window used to display the plots of the 2-D particle distribution and
+ * the 3-D particle distributions (of varying thicknesses).
+*/
+/**
+ * A JFrame window that is launched at the end of the execution of the main plugin.
+ * The window provides plots of the particle distributions Na and Nv (2-D and 3-D),
+ * with varying thicknesses for Nv. This class makes use of Ptolemy's Plot (Ptplot)
+ * functionality.
+ *
+ * For more information on Ptolemy and ptplot, see
+ * http://ptolemy.berkeley.edu/java/ptplot/ .
+ *
+ * @author Benn Snyder
+ * @author Josh Thomas
+ * @version 0.2, 05/31/11
+ */
 class Graph_Window extends JPanel
 {
+	// Static global variables to conform to the initial constructor call and the second constructor call in setup
 	static JFrame frame;
 	static Vector<Double> Na;
 	static double[] Nv0;
@@ -704,10 +796,22 @@ class Graph_Window extends JPanel
 	static double max;
 	static int nBins;
 
+	// Plot object using ptplot
 	static Plot p;
 
-	public Graph_Window(Vector<Double> Na, double[] Nv0, double[] Nv60, double[] Nv100, double max, int nBins) // Pass in Na, Nv, max, nBins
+	/**
+	 * First constructor for the class, which is called during the execution of run() in the New_Plugin class.
+	 * This constructor takes in the pertinent data that has been grabbed and generated in the main class and stores
+	 * the data in global variables to be used when constructing the plot in the frame.
+	 * 
+	 * @param Na The 2-D particle distribution obtained in the New_Plugin class.
+	 * @param Nv0 The 3-D particle distribution obtained in the New_Plugin class, with a thickness of 0 pixels.
+	 * @param Nv60 The 3-D particle distribution obtained in the New_Plugin class, with a thickness of 60 pixels.
+	 * @param Nv100 The 3-D particle distribution obtained in the New_Plugin class, with a thickness of 100 pixels.
+	*/
+	public Graph_Window(Vector<Double> Na, double[] Nv0, double[] Nv60, double[] Nv100, double max, int nBins)
 	{
+		// Stores the input arguments into the class-local variables
 		this.Na = Na;
 		this.Nv0 = Nv0;
 		this.Nv60 = Nv60;
@@ -716,27 +820,37 @@ class Graph_Window extends JPanel
 		this.nBins = nBins;
 	}
 
+	/**
+	 * Second constructor for the class, called during the setup of the JFrame. This constructor
+	 * creates the Swing components and the Plot components. It places them in the JFrame.
+	*/
 	public Graph_Window()
 	{
+		// Gives the class's JPanel (since it extends that) a BorderLayout.
 		super(new BorderLayout());
 
+		// Creates the JPanel to be placed in the BorderLayout - this JPanel has its components centered
 		JPanel graphPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
 
+		// Creates a new Plot object
 		p = new Plot();
-		p.setSize(750, 500);
-		p.setTitle("Plot of CDFs, 2-D Distribution, 3-D Distribution (H = 0, H = 60, H = 100)");
-		p.setGrid(false);
-		p.setYRange(0, 100);
-		p.setXRange(max/(nBins+1), (max*(nBins+2))/(nBins+1));
-		p.setYLabel("Cumulative number, percent under size");
-		p.setXLabel("Diameter (px)");
+		p.setSize(750, 500); // Sets the size of the coordinate axes window that is generated
+		p.setTitle("Plot of CDFs, 2-D Distribution, 3-D Distribution (H = 0, H = 60, H = 100)"); // Sets the "figure's" title
+		p.setGrid(false); // No grid behind the plotted functions/points
+		p.setYRange(0, 100); // Sets the range of the y-axis
+		p.setXRange(max/(nBins+1), (max*(nBins+2))/(nBins+1)); // Sets the domain of the x-axis
+		p.setYLabel("Cumulative number, percent under size"); // Sets the label for the y-axis
+		p.setXLabel("Diameter (px)"); // Sets the label for the x-axis
 		p.setMarksStyle("none");
 		p.setImpulses(true);
-		p.setButtons(true);
+		p.setButtons(true); // Sets the buttons to return to original zoom, etc. to be active
 
+		// Total sum variables (sums of all entries in Na and each Nv)
 		double tsumA = 0, tsumV0 = 0, tsumV60 = 0, tsumV100 = 0;
+		// Cumulative sum variables (progressive sums of the entries in Na or the Nvs)
 		double csumA = 0, csumV0 = 0, csumV60 = 0, csumV100 = 0;
 
+		// Precomputes the total sums of Na, Nv0, Nv60, and Nv100
 		for (int i = 0; i < Na.size(); i++)
 		{
 			tsumA += Na.elementAt(i);
@@ -745,32 +859,48 @@ class Graph_Window extends JPanel
 			tsumV100 += Nv100[i];
 		}
 
+		// First points plotted for each data set are not connected
 		boolean connected = false;
 
+		/* Adds the points to the plot, with:
+		 * Na = data set 0
+		 * Nv0 = data set 1
+		 * Nv60 = data set 2
+		 * Nv100 = data set 3
+		*/
 		for (int i = 1; i <= nBins+1; i++)
 		{
+			// Computes cumulative sums
 			csumA += Na.elementAt(i-1);
 			csumV0 += Nv0[i-1];
 			csumV60 += Nv60[i-1];
 			csumV100 += Nv100[i-1];
 
+			// Adds the points to the Plot object for each data set
+			// x-axis is particle diameter
+			// y-axis is cumulative percent of number of particles whose diameter is less than or equal to the given diameter
 			p.addPoint(0, i*(max/(nBins+1)), (csumA/tsumA)*100, connected);
 			p.addPoint(1, i*(max/(nBins+1)), (csumV0/tsumV0)*100, connected);
 			p.addPoint(2, i*(max/(nBins+1)), (csumV60/tsumV60)*100, connected);
 			p.addPoint(3, i*(max/(nBins+1)), (csumV100/tsumV100)*100, connected);
 
+			// Connects points after the first iteration of the loop
 			connected = true;
 		}
 
+		// Scales plot to fit data
 		p.fillPlot();
 
+		// Adds the legend for the data sets
 		p.addLegend(0, "2-D Distribution");
 		p.addLegend(1, "H = 0 px");
 		p.addLegend(2, "H = 60 px");
 		p.addLegend(3, "H = 100 px");
 
+		// Adds the Plot object to the JPanel
 		graphPanel.add(p);
 
+		// Adds the JPanel to the BorderLayout
 		add(graphPanel, BorderLayout.CENTER);
 	}
 
@@ -782,10 +912,10 @@ class Graph_Window extends JPanel
 	 */
 	private static void setup()
 	{
-		// Creates the JFrame with the title of "Process Selector"
+		// Creates the JFrame with the title of "Graph of 2-D CDF and 3-D CDF"
 		frame = new JFrame("Graph of 2-D CDF and 3-D CDF");
 
-		// Creates a JComponent from the default constructor
+		// Creates a JComponent from the secondary constructor
 		JComponent contentPane = new Graph_Window();
 		// Makes the content pane non-transparent
 		contentPane.setOpaque(true);
@@ -813,9 +943,16 @@ class Graph_Window extends JPanel
 	}
 }
 
-
+/*
+ * New_Plugin
+ * The main class of the file, which represents the entire plugin.
+*/
 /**
- * This Plugin does a thing.  C'est vrai.
+ * The main class of the code. This class represents the plugin developed for Goodyear
+ * Tire and Rubber Company. This plugin automates a previously manual process of analyzing
+ * a source image (2-D cross section obtained via electron microscope), implements the
+ * Schwartz-Saltikov algorithm for converting from a 2-D particle distribution to a 3-D
+ * particle distribution, and produces a plot of the resulting diameters in the distributions.
  *
  * @author		Benn Snyder
  * @author		Josh Thomas
@@ -823,7 +960,7 @@ class Graph_Window extends JPanel
  */
 public class New_Plugin implements PlugInFilter
 {
-	// variables
+	// Global ImageJ variables
 	ImagePlus imp;
 	ImageProcessor ip;
 
@@ -842,15 +979,68 @@ public class New_Plugin implements PlugInFilter
 	{
 		try
 		{
+			// Suspends the thread for the specified amount of time
 			Thread.sleep(milliseconds);
 		}
 		catch (InterruptedException e) {}
 	}
+	
+	void stats(int nc, float [] data, float [] pars)
+	{
+		float s = 0, min = Float.MAX_VALUE, max = -Float.MAX_VALUE, totl=0, ave=0, adev=0, sdev=0, var=0, skew=0, kurt=0, p;
 
+		for (int i = 0; i < nc; i++)
+		{
+			totl += data[i];
+			if (data[i] < min)
+			{
+				min = data[i];
+			}
+			if (data[i] > max)
+			{
+				max = data[i];
+			}
+		}
 
-	// necessary?  will images be pre-cropped?
+		ave = totl/nc;
+
+		for (int i = 0; i < nc; i++)
+		{
+			s = data[i] - ave;
+			adev += Math.abs(s);
+			p = s * s;
+			var += p;
+			p *= s;
+			skew += p;
+			p *= s;
+			kurt += p;
+		}
+
+		adev /= nc;
+		var /= nc-1;
+		sdev = (float)Math.sqrt(var);
+
+		if (var > 0)
+		{
+			skew /= (nc * (float) Math.pow(sdev, 3));
+			kurt = kurt / (nc * (float) Math.pow(var, 2)) - 3;
+		}
+		
+		pars[1] = nc;
+		pars[2] = totl;
+		pars[3] = min;
+		pars[4] = max;
+		pars[5] = ave;
+		pars[6] = adev;
+		pars[7] = sdev;
+		pars[8] = var;
+		pars[9] = skew;
+		pars[10] = kurt;
+	}
+
 	/**
-	 * Automatically crops the image
+	 * Automatically crops the image.
+	 * This can be toggled on and off in run() via a boolean variable in Option_Window.
 	 */
 	private void autoCrop()
 	{
@@ -908,7 +1098,10 @@ public class New_Plugin implements PlugInFilter
 			pause(500);
 		}
 	}
-
+	
+	/**
+	 * Main driving method for the New_Plugin class. Executes the main functionality for the class.
+	*/
 	public void run(ImageProcessor ip)
 	{
 		// PlugInFilter automatically locks images, so we need to unlock them.
@@ -916,21 +1109,23 @@ public class New_Plugin implements PlugInFilter
 
 		this.ip = ip;
 
+		// Generates the Option Window to determine what the user needs to do for the given image
 		Option_Window ow = new Option_Window();
 		ow.start();
+		// Waits until the Option Window is closed before proceeding
 		while (!ow.finished)
 		{
 			pause(500);
 		}
-
+		
+		// Checks if the user specified that the image needs its LUT inverted
 		if (ow.invertCheck)
 		{
-			// Invert image
 			ip.invert();
 		}
+		// Checks if the user specified that the image needs to be cropped
 		if (ow.cropCheck)
 		{
-			// Crop
 			autoCrop();
 		}
 		// Despeckle
@@ -950,6 +1145,10 @@ public class New_Plugin implements PlugInFilter
 
 		// Get results
 		ResultsTable rt = ResultsTable.getResultsTable();
+		
+		
+		// Previous attempts at determining which particles were overlapping
+		/*
 		Vector<Integer> overlappingParticles = new Vector();
 		for (int i = 0; i < rt.getCounter(); i++)
 		{
@@ -958,26 +1157,44 @@ public class New_Plugin implements PlugInFilter
 				overlappingParticles.add(i);
 			}
 		}
-
-		//System.out.println(overlappingParticles.size());
-
-		//for (int i = 0; i < overlappingParticles.size(); i++)
-		//{
-		//	System.out.println(rt.getValue("XStart", overlappingParticles.elementAt(i)));
-		//}
-
+		System.out.println(overlappingParticles.size());
+		for (int i = 0; i < overlappingParticles.size(); i++)
+		{
+			System.out.println(rt.getValue("XStart", overlappingParticles.elementAt(i)));
+		}
+		*/
+		
+		
+		// Creates a vector to store the diameters that ImageJ computes for each particle
 		Vector<Double> imageData = new Vector();
 		for (int i = 0; i < rt.getCounter(); i++)
 		{
+			// Stores the diameters of each recognized particle into the Vector
 			imageData.add(2*Math.sqrt(rt.getValue("Area", i) / Math.PI));
+		}		
+
+
+		// Determines the number of bins for the image
+		float[] data = rt.getColumn(rt.getColumnIndex("Area"));
+		float [] pars = new float [11];
+		stats(rt.getCounter(), data, pars);
+		//sd = 7, min = 3, max = 4
+		// use Scott's method (1979 Biometrika, 66:605-610) for optimal binning: 3.49*sd*N^-1/3
+		float binWidth = (float)(3.49 * pars[7]*(float)Math.pow(rt.getCounter(), -1.0/3.0));
+		int nBins = (int)Math.floor(((pars[4]-pars[3])/binWidth)+.5);
+		if (nBins < 2)
+		{
+			nBins = 2;
 		}
 
-		int nBins = 5;
+		// Computes Nv for thickness = 0 pixels
+		double[] results = Alg.SSAlg(imageData, nBins, 0, imp.getWidth() * imp.getHeight());
+		// Computes Nv for thickness = 60 pixels
+		double[] results2 = Alg.SSAlg(imageData, nBins, 60, imp.getWidth() * imp.getHeight());
+		// Computes Nv for thickness = 100 pixels
+		double[] results3 = Alg.SSAlg(imageData, nBins, 100, imp.getWidth() * imp.getHeight());
 
-		double[] results = Alg.CorteAlg(imageData, nBins, 0, imp.getWidth() * imp.getHeight());
-		double[] results2 = Alg.CorteAlg(imageData, nBins, 60, imp.getWidth() * imp.getHeight());
-		double[] results3 = Alg.CorteAlg(imageData, nBins, 100, imp.getWidth() * imp.getHeight());
-
+		// If the user did NOT select to include negatives, then replace these negative values with 0
 		if (!ow.includeNegatives)
 		{
 			for (int i = 0; i < results.length; i++)
@@ -989,11 +1206,13 @@ public class New_Plugin implements PlugInFilter
 			}
 		}
 
+		// Grabs the maximum diameter from the data set of diameters
 		double max = Collections.max(imageData);
+		// Creates and launches the Graph Window, which plots Na and each of the computed Nv sets
 		Graph_Window gw = new Graph_Window(Alg.Na, results, results2, results3, max, nBins);
 		gw.start();
 
-
+		// Updates the image on screen
 		imp.updateAndDraw();
 
 		// relock image?
