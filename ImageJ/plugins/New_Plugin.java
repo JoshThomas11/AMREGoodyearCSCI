@@ -10,8 +10,8 @@
  * microscope.
  *
  * Written by: Benn Snyder - benn.snyder@gmail.com
- *             Ruth Steinhour - rasteinhour@gmail.com
- *             Joshua Thomas - jet4416@gmail.com
+ *			   Ruth Steinhour - rasteinhour@gmail.com
+ *			   Joshua Thomas - jet4416@gmail.com
  *
  * Date last modified: May 31, 2011
  * Version: 0.6.5
@@ -152,7 +152,6 @@ import ptolemy.plot.Plot;
   * Version 1.11, Michael Schmid, 2009-Jul-10: Color, non-contiguous added.
   *											NullPointerException fixed.
   */
-
 class Versatile_Wand
 {
 	private final static int EIGHT_CONNECTED=0, FOUR_CONNECTED=1, NON_CONTIGUOUS=2;
@@ -551,7 +550,7 @@ class Option_Window extends JPanel implements ActionListener, ItemListener
 		OKButton.setActionCommand("OK");
 		// Adds an action listener to the button
 		OKButton.addActionListener(this);
-		
+
 		// Adds the button to the panel
 		buttonPanel.add(OKButton);
 
@@ -672,7 +671,8 @@ class Alg
 {
 	// Global variable definitions
 	static Vector< Double > Na;
-	
+	static double delta = -1;
+
 	/**
 	 * The main function of the class. Computes the Schwartz-Saltikov algorithm from
 	 * the given input parameters.
@@ -689,9 +689,12 @@ class Alg
 		// Finds the minimum and maximum diameters from the data
 		double max = Collections.max(data);
 		double min = Collections.min(data);
-		
+
 		// Computes delta, the bin width
-		double delta = (max-min)/nBins;
+		if (delta == -1)
+		{
+			delta = (max-min)/nBins;
+		}
 
 		// Constructs Na, the 2-D particle distribution
 		Na = new Vector(nBins+1);
@@ -699,8 +702,7 @@ class Alg
 		// "counter" variable used to determine the values in Na
 		double sum = 0;
 
-		// Nested looping structure that determines sum for each entry in Na and assigns (sum/area)
-		// to each entry in Na
+		// Nested looping structure that determines sum for each entry in Na and assigns (sum/area) to each entry in Na
 		for(int i = 0; i <= nBins; i++)
 		{
 			for(int j = 0; j < data.size(); j++)
@@ -724,20 +726,17 @@ class Alg
 		{
 			for(int j = 1; j <= nBins+1; j++)
 			{
-				if(i == j)
+				if (i == j)
 				{
 					A[i-1][j-1] = thick+delta*Math.sqrt(Math.pow((j+1),2)-Math.pow(i,2));
 				}
+				else if (i < j)
+				{
+					A[i-1][j-1] = delta*(Math.sqrt(Math.pow((j+1),2)-Math.pow(i,2))-Math.sqrt(Math.pow(j,2)-Math.pow(i,2)));
+				}
 				else
 				{
-					if(i < j)
-					{
-						A[i-1][j-1] = delta*(Math.sqrt(Math.pow((j+1),2)-Math.pow(i,2))-Math.sqrt(Math.pow(j,2)-Math.pow(i,2)));
-					}
-					else
-					{
-						A[i-1][j-1] = 0;
-					}
+					A[i-1][j-1] = 0;
 				}
 			}
 		}
@@ -764,6 +763,23 @@ class Alg
 		}
 		// Returns the 3-D distribution
 		return Nv;
+	}
+
+	/**
+	 * Runs the Schwartz-Saltikov algorithm, but takes an additional parameter - binWidth.
+	 *
+	 * @param data Input data from ImageJ, consisting of the diameters of each particle in pixels
+	 * @param nBins The number of bins computed by ImageJ that the particles are placed into
+	 * @param binWidth The width of each bin
+	 * @param thick The thickness of the slice/cross-section in pixels
+	 * @param area The area of the image, computed by multiplying the cropped image's width and height
+	 *
+	 * @return Nv The 3-D particle distribution, stored as an array of doubles
+	 */
+	public static double[] SSAlg(Vector<Double> data, int nBins, float binWidth, int thick, double area)
+	{
+		delta = binWidth;
+		return SSAlg(data, nBins, thick, area);
 	}
 }
 
@@ -803,7 +819,7 @@ class Graph_Window extends JPanel
 	 * First constructor for the class, which is called during the execution of run() in the New_Plugin class.
 	 * This constructor takes in the pertinent data that has been grabbed and generated in the main class and stores
 	 * the data in global variables to be used when constructing the plot in the frame.
-	 * 
+	 *
 	 * @param Na The 2-D particle distribution obtained in the New_Plugin class.
 	 * @param Nv0 The 3-D particle distribution obtained in the New_Plugin class, with a thickness of 0 pixels.
 	 * @param Nv60 The 3-D particle distribution obtained in the New_Plugin class, with a thickness of 60 pixels.
@@ -984,7 +1000,11 @@ public class New_Plugin implements PlugInFilter
 		}
 		catch (InterruptedException e) {}
 	}
-	
+
+	/**
+	 * Gathers a variety of statistics about the passed in data and puts those in pars[].
+	 * Taken from ImageJ's Distribution class.
+	 */
 	void stats(int nc, float [] data, float [] pars)
 	{
 		float s = 0, min = Float.MAX_VALUE, max = -Float.MAX_VALUE, totl=0, ave=0, adev=0, sdev=0, var=0, skew=0, kurt=0, p;
@@ -1025,7 +1045,7 @@ public class New_Plugin implements PlugInFilter
 			skew /= (nc * (float) Math.pow(sdev, 3));
 			kurt = kurt / (nc * (float) Math.pow(var, 2)) - 3;
 		}
-		
+
 		pars[1] = nc;
 		pars[2] = totl;
 		pars[3] = min;
@@ -1086,19 +1106,17 @@ public class New_Plugin implements PlugInFilter
 	private void threshold()
 	{
 		// Automatic Thresholding doesn't work (yet), so we get the user to do it.
-		// Show dialog with instructions.
-		//WaitForUserDialog waiter = new WaitForUserDialog("User input required", "Please click 'Apply' in the Threshold window and close the Threshold window.");
-		//waiter.show();
 		IJ.run("Threshold...");
 		// Wait to make sure the Threshold dialog is ready.
 		pause(500);
 
+		// Wait for the user to close the Threshold window
 		while ((WindowManager.getFrontWindow() != null) && (WindowManager.getFrontWindow().getTitle().equals("Threshold")))
 		{
 			pause(500);
 		}
 	}
-	
+
 	/**
 	 * Main driving method for the New_Plugin class. Executes the main functionality for the class.
 	*/
@@ -1117,7 +1135,7 @@ public class New_Plugin implements PlugInFilter
 		{
 			pause(500);
 		}
-		
+
 		// Checks if the user specified that the image needs its LUT inverted
 		if (ow.invertCheck)
 		{
@@ -1145,8 +1163,8 @@ public class New_Plugin implements PlugInFilter
 
 		// Get results
 		ResultsTable rt = ResultsTable.getResultsTable();
-		
-		
+
+
 		// Previous attempts at determining which particles were overlapping
 		/*
 		Vector<Integer> overlappingParticles = new Vector();
@@ -1163,22 +1181,29 @@ public class New_Plugin implements PlugInFilter
 			System.out.println(rt.getValue("XStart", overlappingParticles.elementAt(i)));
 		}
 		*/
-		
-		
+
+
 		// Creates a vector to store the diameters that ImageJ computes for each particle
 		Vector<Double> imageData = new Vector();
 		for (int i = 0; i < rt.getCounter(); i++)
 		{
 			// Stores the diameters of each recognized particle into the Vector
 			imageData.add(2*Math.sqrt(rt.getValue("Area", i) / Math.PI));
-		}		
+		}
 
 
 		// Determines the number of bins for the image
 		float[] data = rt.getColumn(rt.getColumnIndex("Area"));
+
+		// convert to diameter?
+		for (int i = 0; i < data.length; i++)
+		{
+			data[i] = (float)(2*Math.sqrt(data[i]/Math.PI));
+		}
+
 		float [] pars = new float [11];
 		stats(rt.getCounter(), data, pars);
-		//sd = 7, min = 3, max = 4
+		// sd = 7, min = 3, max = 4
 		// use Scott's method (1979 Biometrika, 66:605-610) for optimal binning: 3.49*sd*N^-1/3
 		float binWidth = (float)(3.49 * pars[7]*(float)Math.pow(rt.getCounter(), -1.0/3.0));
 		int nBins = (int)Math.floor(((pars[4]-pars[3])/binWidth)+.5);
@@ -1187,22 +1212,36 @@ public class New_Plugin implements PlugInFilter
 			nBins = 2;
 		}
 
+		//nBins = 30;
+		System.out.println("nBins = " + nBins);
+
 		// Computes Nv for thickness = 0 pixels
-		double[] results = Alg.SSAlg(imageData, nBins, 0, imp.getWidth() * imp.getHeight());
+		//double[] results = Alg.SSAlg(imageData, nBins, 0, imp.getWidth() * imp.getHeight());
+		double[] results = Alg.SSAlg(imageData, nBins, binWidth, 0, imp.getWidth() * imp.getHeight());
 		// Computes Nv for thickness = 60 pixels
-		double[] results2 = Alg.SSAlg(imageData, nBins, 60, imp.getWidth() * imp.getHeight());
+		//double[] results2 = Alg.SSAlg(imageData, nBins, 60, imp.getWidth() * imp.getHeight());
+		double[] results2 = Alg.SSAlg(imageData, nBins, binWidth, 60, imp.getWidth() * imp.getHeight());
 		// Computes Nv for thickness = 100 pixels
-		double[] results3 = Alg.SSAlg(imageData, nBins, 100, imp.getWidth() * imp.getHeight());
+		//double[] results3 = Alg.SSAlg(imageData, nBins, 100, imp.getWidth() * imp.getHeight());
+		double[] results3 = Alg.SSAlg(imageData, nBins, binWidth, 100, imp.getWidth() * imp.getHeight());
 
 		// If the user did NOT select to include negatives, then replace these negative values with 0
 		if (!ow.includeNegatives)
 		{
 			for (int i = 0; i < results.length; i++)
 			{
-				// overhead?
-				results[i] = Math.max(0, results[i]);
-				results2[i] = Math.max(0, results2[i]);
-				results3[i] = Math.max(0, results3[i]);
+				if (results[i] < 0)
+				{
+					results[i] = 0;
+				}
+				if (results2[i] < 0)
+				{
+					results2[i] = 0;
+				}
+				if (results3[i] < 0)
+				{
+					results3[i] = 0;
+				}
 			}
 		}
 
