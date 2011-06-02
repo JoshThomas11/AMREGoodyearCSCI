@@ -468,18 +468,20 @@ class Versatile_Wand
  *
  * @author Benn Snyder
  * @author Josh Thomas
- * @version 0.1, 05/25/11
+ * @version 0.2, 06/02/11
  */
 class Option_Window extends JPanel implements ActionListener, ItemListener
 {
 	// Boolean variables determining whether Invert LUT and Auto Crop Image are selected
 	// Also, keeps track of if the window has been closed
-	public static boolean invertCheck, cropCheck, includeNegatives, finished;
+	public static boolean invertCheck, cropCheck, includeNegatives, despeckleCheck, watershedCheck, finished;
 
 	// Swing objects
 	JCheckBox opt1; // Checkbox for Invert LUT
-	JCheckBox opt2; // Checkbox for Auto Crop Image
+	JCheckBox opt2; // Checkbox for Auto Crop
 	JCheckBox opt3; // Checkbox for Include Negatives
+	JCheckBox opt4; // Checkbox for Despeckle
+	JCheckBox opt5; // Checkbox for Watershed
 	protected static JButton OKButton; // OK Button
 	private static JFrame frame; // Main JFrame for the window
 
@@ -515,8 +517,8 @@ class Option_Window extends JPanel implements ActionListener, ItemListener
 		opt1.setMnemonic(KeyEvent.VK_I);
 		// Sets the initial state of the checkbox to be unchecked
 		opt1.setSelected(false);
-		// Creates the checkbox for Auto Crop Image
-		opt2 = new JCheckBox("Auto Crop Image");
+		// Creates the checkbox for Auto Crop
+		opt2 = new JCheckBox("Auto Crop");
 		// Sets the Key Event for the checkbox
 		opt2.setMnemonic(KeyEvent.VK_C);
 		// Sets the initial state of the checkbox to be unchecked
@@ -527,15 +529,32 @@ class Option_Window extends JPanel implements ActionListener, ItemListener
 		opt3.setMnemonic(KeyEvent.VK_C);
 		// Sets the initial state of the checkbox to be unchecked
 		opt3.setSelected(false);
+		// Creates the checkbox for Despeckle
+		opt4 = new JCheckBox("Despeckle");
+		// Sets the Key Event for the checkbox
+		opt4.setMnemonic(KeyEvent.VK_I);
+		// Sets the initial state of the checkbox to be unchecked
+		opt4.setSelected(false);
+		// Creates the checkbox for Watershed
+		opt5 = new JCheckBox("Watershed");
+		// Sets the Key Event for the checkbox
+		opt5.setMnemonic(KeyEvent.VK_I);
+		// Sets the initial state of the checkbox to be unchecked
+		opt5.setSelected(false);
+		
 		// Adds an item listener to all checkboxes
 		opt1.addItemListener(this);
 		opt2.addItemListener(this);
 		opt3.addItemListener(this);
+		opt4.addItemListener(this);
+		opt5.addItemListener(this);
 
-		// Adds both checkboxes to the panel
+		// Adds all checkboxes to the panel
 		checkBoxPanel.add(opt1);
 		checkBoxPanel.add(opt2);
 		checkBoxPanel.add(opt3);
+		checkBoxPanel.add(opt4);
+		checkBoxPanel.add(opt5);
 
 		// Adds the panel to the window
 		add(checkBoxPanel);
@@ -566,8 +585,8 @@ class Option_Window extends JPanel implements ActionListener, ItemListener
 	 */
 	private static void setup()
 	{
-		// Creates the JFrame with the title of "Process Selector"
-		frame = new JFrame("Process Selector");
+		// Creates the JFrame with the title of "New_Plugin Options"
+		frame = new JFrame("New_Plugin Options");
 		// Prevents the user from clicking the X on the window to close it
 		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 
@@ -608,6 +627,14 @@ class Option_Window extends JPanel implements ActionListener, ItemListener
 		{
 			includeNegatives = true;
 		}
+		else if (opt4 == box)
+		{
+			despeckleCheck = true;
+		}
+		else if (opt5 == box)
+		{
+			watershedCheck = true;
+		}
 
 		// If, in fact, the checkbox was deselected, then set the value to false
 		if(e.getStateChange() == ItemEvent.DESELECTED)
@@ -623,6 +650,14 @@ class Option_Window extends JPanel implements ActionListener, ItemListener
 			else if (opt3 == box)
 			{
 				includeNegatives = false;
+			}
+			else if (opt4 == box)
+			{
+				despeckleCheck = false;
+			}
+			else if (opt5 == box)
+			{
+				watershedCheck = false;
 			}
 		}
 	}
@@ -1116,6 +1151,10 @@ public class New_Plugin implements PlugInFilter
 			pause(500);
 		}
 	}
+	
+	//private void makeBins()
+	//{
+	//}
 
 	/**
 	 * Main driving method for the New_Plugin class. Executes the main functionality for the class.
@@ -1135,7 +1174,6 @@ public class New_Plugin implements PlugInFilter
 		{
 			pause(500);
 		}
-
 		// Checks if the user specified that the image needs its LUT inverted
 		if (ow.invertCheck)
 		{
@@ -1146,19 +1184,24 @@ public class New_Plugin implements PlugInFilter
 		{
 			autoCrop();
 		}
-		// Despeckle
-		despeckle();
+		// Checks if the user specified that the image needs to be despeckled
+		if (ow.despeckleCheck)
+		{
+			despeckle();
+		}
 		// Threshold
 		threshold();
-
-		// Run watershed
-		IJ.run(imp, "Watershed", "");
+		// Checks if the user specified that the image needs to watersheded
+		if (ow.watershedCheck)
+		{
+			IJ.run(imp, "Watershed", "");
+		}
 
 		// Analyze particles
 		IJ.run("Set Measurements...", "area shape redirect=None decimal=3");
-		//IJ.run("Analyze Particles...");
+		IJ.run("Analyze Particles...");
 		//IJ.run("Analyze Particles...", "show=Outlines display exclude clear record");
-		IJ.run("Analyze Particles...", "show=Outlines display clear record");
+		//IJ.run("Analyze Particles...", "show=Outlines display clear record");
 		//IJ.run("Analyze Particles...", "display exclude clear record");
 
 		// Get results
@@ -1185,20 +1228,13 @@ public class New_Plugin implements PlugInFilter
 
 		// Creates a vector to store the diameters that ImageJ computes for each particle
 		Vector<Double> imageData = new Vector();
+		// Creates an array of the same diameters for bin computations
+		float[] data = new float[rt.getCounter()];
 		for (int i = 0; i < rt.getCounter(); i++)
 		{
 			// Stores the diameters of each recognized particle into the Vector
 			imageData.add(2*Math.sqrt(rt.getValue("Area", i) / Math.PI));
-		}
-
-
-		// Determines the number of bins for the image
-		float[] data = rt.getColumn(rt.getColumnIndex("Area"));
-
-		// convert to diameter?
-		for (int i = 0; i < data.length; i++)
-		{
-			data[i] = (float)(2*Math.sqrt(data[i]/Math.PI));
+			data[i] = (float)(2*Math.sqrt(rt.getValue("Area", i) / Math.PI));
 		}
 
 		float [] pars = new float [11];
@@ -1249,7 +1285,7 @@ public class New_Plugin implements PlugInFilter
 		double max = Collections.max(imageData);
 		// Creates and launches the Graph Window, which plots Na and each of the computed Nv sets
 		Graph_Window gw = new Graph_Window(Alg.Na, results, results2, results3, max, nBins);
-		gw.start();
+		gw.start();		
 
 		// Updates the image on screen
 		imp.updateAndDraw();
