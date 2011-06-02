@@ -842,7 +842,7 @@ class Graph_Window extends JPanel
 	static JFrame frame;
 	static Vector<Double> Na;
 	static double[] Nv0;
-	static double[] Nv60;
+	static double[] Nv50;
 	static double[] Nv100;
 	static double max;
 	static int nBins;
@@ -857,15 +857,15 @@ class Graph_Window extends JPanel
 	 *
 	 * @param Na The 2-D particle distribution obtained in the New_Plugin class.
 	 * @param Nv0 The 3-D particle distribution obtained in the New_Plugin class, with a thickness of 0 pixels.
-	 * @param Nv60 The 3-D particle distribution obtained in the New_Plugin class, with a thickness of 60 pixels.
+	 * @param Nv50 The 3-D particle distribution obtained in the New_Plugin class, with a thickness of 50 pixels.
 	 * @param Nv100 The 3-D particle distribution obtained in the New_Plugin class, with a thickness of 100 pixels.
 	*/
-	public Graph_Window(Vector<Double> Na, double[] Nv0, double[] Nv60, double[] Nv100, double max, int nBins)
+	public Graph_Window(Vector<Double> Na, double[] Nv0, double[] Nv50, double[] Nv100, double max, int nBins)
 	{
 		// Stores the input arguments into the class-local variables
 		this.Na = Na;
 		this.Nv0 = Nv0;
-		this.Nv60 = Nv60;
+		this.Nv50 = Nv50;
 		this.Nv100 = Nv100;
 		this.max = max;
 		this.nBins = nBins;
@@ -886,7 +886,7 @@ class Graph_Window extends JPanel
 		// Creates a new Plot object
 		p = new Plot();
 		p.setSize(750, 500); // Sets the size of the coordinate axes window that is generated
-		p.setTitle("Plot of CDFs, 2-D Distribution, 3-D Distribution (H = 0, H = 60, H = 100)"); // Sets the "figure's" title
+		p.setTitle("Plot of CDFs, 2-D Distribution, 3-D Distribution (H = 0, H = 50, H = 100)"); // Sets the "figure's" title
 		p.setGrid(false); // No grid behind the plotted functions/points
 		p.setYRange(0, 100); // Sets the range of the y-axis
 		p.setXRange(max/(nBins+1), (max*(nBins+2))/(nBins+1)); // Sets the domain of the x-axis
@@ -897,16 +897,16 @@ class Graph_Window extends JPanel
 		p.setButtons(true); // Sets the buttons to return to original zoom, etc. to be active
 
 		// Total sum variables (sums of all entries in Na and each Nv)
-		double tsumA = 0, tsumV0 = 0, tsumV60 = 0, tsumV100 = 0;
+		double tsumA = 0, tsumV0 = 0, tsumV50 = 0, tsumV100 = 0;
 		// Cumulative sum variables (progressive sums of the entries in Na or the Nvs)
-		double csumA = 0, csumV0 = 0, csumV60 = 0, csumV100 = 0;
+		double csumA = 0, csumV0 = 0, csumV50 = 0, csumV100 = 0;
 
-		// Precomputes the total sums of Na, Nv0, Nv60, and Nv100
+		// Precomputes the total sums of Na, Nv0, Nv50, and Nv100
 		for (int i = 0; i < Na.size(); i++)
 		{
 			tsumA += Na.elementAt(i);
 			tsumV0 += Nv0[i];
-			tsumV60 += Nv60[i];
+			tsumV50 += Nv50[i];
 			tsumV100 += Nv100[i];
 		}
 
@@ -916,7 +916,7 @@ class Graph_Window extends JPanel
 		/* Adds the points to the plot, with:
 		 * Na = data set 0
 		 * Nv0 = data set 1
-		 * Nv60 = data set 2
+		 * Nv50 = data set 2
 		 * Nv100 = data set 3
 		*/
 		for (int i = 1; i <= nBins+1; i++)
@@ -924,7 +924,7 @@ class Graph_Window extends JPanel
 			// Computes cumulative sums
 			csumA += Na.elementAt(i-1);
 			csumV0 += Nv0[i-1];
-			csumV60 += Nv60[i-1];
+			csumV50 += Nv50[i-1];
 			csumV100 += Nv100[i-1];
 
 			// Adds the points to the Plot object for each data set
@@ -932,7 +932,7 @@ class Graph_Window extends JPanel
 			// y-axis is cumulative percent of number of particles whose diameter is less than or equal to the given diameter
 			p.addPoint(0, i*(max/(nBins+1)), (csumA/tsumA)*100, connected);
 			p.addPoint(1, i*(max/(nBins+1)), (csumV0/tsumV0)*100, connected);
-			p.addPoint(2, i*(max/(nBins+1)), (csumV60/tsumV60)*100, connected);
+			p.addPoint(2, i*(max/(nBins+1)), (csumV50/tsumV50)*100, connected);
 			p.addPoint(3, i*(max/(nBins+1)), (csumV100/tsumV100)*100, connected);
 
 			// Connects points after the first iteration of the loop
@@ -945,7 +945,7 @@ class Graph_Window extends JPanel
 		// Adds the legend for the data sets
 		p.addLegend(0, "2-D Distribution");
 		p.addLegend(1, "H = 0 px");
-		p.addLegend(2, "H = 60 px");
+		p.addLegend(2, "H = 50 px");
 		p.addLegend(3, "H = 100 px");
 
 		// Adds the Plot object to the JPanel
@@ -1152,9 +1152,26 @@ public class New_Plugin implements PlugInFilter
 		}
 	}
 	
-	//private void makeBins()
-	//{
-	//}
+	private float sizeBins(float[] data, ResultsTable rt)
+	{
+		float [] pars = new float [11];
+		stats(rt.getCounter(), data, pars);
+		// sd = 7, min = 3, max = 4
+		// use Scott's method (1979 Biometrika, 66:605-610) for optimal binning: 3.49*sd*N^-1/3
+		return (float)(3.49 * pars[7]*(float)Math.pow(rt.getCounter(), -1.0/3.0));		
+	}
+	
+	private int numBins(float[] data, ResultsTable rt)
+	{
+		float [] pars = new float [11];
+		stats(rt.getCounter(), data, pars);
+		int nBins = (int)Math.floor(((pars[4]-pars[3])/sizeBins(data, rt))+.5);
+		if (nBins < 2)
+		{
+			nBins = 2;
+		}
+		return nBins;
+	}
 
 	/**
 	 * Main driving method for the New_Plugin class. Executes the main functionality for the class.
@@ -1207,25 +1224,6 @@ public class New_Plugin implements PlugInFilter
 		// Get results
 		ResultsTable rt = ResultsTable.getResultsTable();
 
-
-		// Previous attempts at determining which particles were overlapping
-		/*
-		Vector<Integer> overlappingParticles = new Vector();
-		for (int i = 0; i < rt.getCounter(); i++)
-		{
-			if (rt.getValue("Circ.", i) < 0.85)
-			{
-				overlappingParticles.add(i);
-			}
-		}
-		System.out.println(overlappingParticles.size());
-		for (int i = 0; i < overlappingParticles.size(); i++)
-		{
-			System.out.println(rt.getValue("XStart", overlappingParticles.elementAt(i)));
-		}
-		*/
-
-
 		// Creates a vector to store the diameters that ImageJ computes for each particle
 		Vector<Double> imageData = new Vector();
 		// Creates an array of the same diameters for bin computations
@@ -1237,26 +1235,18 @@ public class New_Plugin implements PlugInFilter
 			data[i] = (float)(2*Math.sqrt(rt.getValue("Area", i) / Math.PI));
 		}
 
-		float [] pars = new float [11];
-		stats(rt.getCounter(), data, pars);
-		// sd = 7, min = 3, max = 4
-		// use Scott's method (1979 Biometrika, 66:605-610) for optimal binning: 3.49*sd*N^-1/3
-		float binWidth = (float)(3.49 * pars[7]*(float)Math.pow(rt.getCounter(), -1.0/3.0));
-		int nBins = (int)Math.floor(((pars[4]-pars[3])/binWidth)+.5);
-		if (nBins < 2)
-		{
-			nBins = 2;
-		}
+		float binWidth = sizeBins(data, rt);
+		int nBins = numBins(data, rt);
 
-		//nBins = 30;
-		System.out.println("nBins = " + nBins);
+		//nBins = 5;
+		//System.out.println("nBins = " + nBins);
 
 		// Computes Nv for thickness = 0 pixels
 		//double[] results = Alg.SSAlg(imageData, nBins, 0, imp.getWidth() * imp.getHeight());
 		double[] results = Alg.SSAlg(imageData, nBins, binWidth, 0, imp.getWidth() * imp.getHeight());
-		// Computes Nv for thickness = 60 pixels
-		//double[] results2 = Alg.SSAlg(imageData, nBins, 60, imp.getWidth() * imp.getHeight());
-		double[] results2 = Alg.SSAlg(imageData, nBins, binWidth, 60, imp.getWidth() * imp.getHeight());
+		// Computes Nv for thickness = 50 pixels
+		//double[] results2 = Alg.SSAlg(imageData, nBins, 50, imp.getWidth() * imp.getHeight());
+		double[] results2 = Alg.SSAlg(imageData, nBins, binWidth, 50, imp.getWidth() * imp.getHeight());
 		// Computes Nv for thickness = 100 pixels
 		//double[] results3 = Alg.SSAlg(imageData, nBins, 100, imp.getWidth() * imp.getHeight());
 		double[] results3 = Alg.SSAlg(imageData, nBins, binWidth, 100, imp.getWidth() * imp.getHeight());
