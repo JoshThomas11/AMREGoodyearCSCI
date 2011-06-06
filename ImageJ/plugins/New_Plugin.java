@@ -39,6 +39,7 @@ import javax.swing.*;
 
 // Pt Plot Packages
 import ptolemy.plot.Plot;
+import ptolemy.plot.Histogram;
 
 
 /*
@@ -472,16 +473,14 @@ class Versatile_Wand
  */
 class Option_Window extends JPanel implements ActionListener, ItemListener
 {
-	// Boolean variables determining whether Invert LUT and Auto Crop Image are selected
-	// Also, keeps track of if the window has been closed
-	public static boolean invertCheck, cropCheck, includeNegatives, despeckleCheck, watershedCheck, finished;
+	// Boolean variables determining whether each checkbox is checked
+	public static boolean invertCheck = false, cropCheck = false, includeNegatives = false, despeckleCheck = false, watershedCheck = false;
+	// Keeps track of if the window has been closed
+	public static boolean finished = false;
 
 	// Swing objects
-	JCheckBox opt1; // Checkbox for Invert LUT
-	JCheckBox opt2; // Checkbox for Auto Crop
-	JCheckBox opt3; // Checkbox for Include Negatives
-	JCheckBox opt4; // Checkbox for Despeckle
-	JCheckBox opt5; // Checkbox for Watershed
+	// Checkboxes for each property
+	JCheckBox invertBox, cropBox, negativesBox, despeckleBox, watershedBox;
 	protected static JButton OKButton; // OK Button
 	private static JFrame frame; // Main JFrame for the window
 
@@ -493,12 +492,6 @@ class Option_Window extends JPanel implements ActionListener, ItemListener
 	{
 		// Applies a 3 row by 1 column grid layout to the window
 		super(new GridLayout(3,1));
-
-		// Initializes the boolean variables to false, as the window has first been created
-		invertCheck = false;
-		cropCheck = false;
-		includeNegatives = false;
-		finished = false;
 
 		// First panel of components in the window (with components centered)
 		JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -512,49 +505,49 @@ class Option_Window extends JPanel implements ActionListener, ItemListener
 		// Second panel of components in the window (left-aligned)
 		JPanel checkBoxPanel = new JPanel(new FlowLayout());
 		// Creates the checkbox for Invert LUT
-		opt1 = new JCheckBox("Invert LUT");
+		invertBox = new JCheckBox("Invert LUT");
 		// Sets the Key Event for the checkbox
-		opt1.setMnemonic(KeyEvent.VK_I);
+		invertBox.setMnemonic(KeyEvent.VK_I);
 		// Sets the initial state of the checkbox to be unchecked
-		opt1.setSelected(false);
+		invertBox.setSelected(false);
 		// Creates the checkbox for Auto Crop
-		opt2 = new JCheckBox("Auto Crop");
+		cropBox = new JCheckBox("Auto Crop");
 		// Sets the Key Event for the checkbox
-		opt2.setMnemonic(KeyEvent.VK_C);
+		cropBox.setMnemonic(KeyEvent.VK_C);
 		// Sets the initial state of the checkbox to be unchecked
-		opt2.setSelected(false);
+		cropBox.setSelected(false);
 		// Creates the checkbox for including negative values in the distribution
-		opt3 = new JCheckBox("Include Negatives");
+		negativesBox = new JCheckBox("Include Negatives");
 		// Sets the Key Event for the checkbox
-		opt3.setMnemonic(KeyEvent.VK_C);
+		negativesBox.setMnemonic(KeyEvent.VK_C);
 		// Sets the initial state of the checkbox to be unchecked
-		opt3.setSelected(false);
+		negativesBox.setSelected(false);
 		// Creates the checkbox for Despeckle
-		opt4 = new JCheckBox("Despeckle");
+		despeckleBox = new JCheckBox("Despeckle");
 		// Sets the Key Event for the checkbox
-		opt4.setMnemonic(KeyEvent.VK_I);
+		despeckleBox.setMnemonic(KeyEvent.VK_I);
 		// Sets the initial state of the checkbox to be unchecked
-		opt4.setSelected(false);
+		despeckleBox.setSelected(false);
 		// Creates the checkbox for Watershed
-		opt5 = new JCheckBox("Watershed");
+		watershedBox = new JCheckBox("Watershed");
 		// Sets the Key Event for the checkbox
-		opt5.setMnemonic(KeyEvent.VK_I);
+		watershedBox.setMnemonic(KeyEvent.VK_I);
 		// Sets the initial state of the checkbox to be unchecked
-		opt5.setSelected(false);
-		
+		watershedBox.setSelected(false);
+
 		// Adds an item listener to all checkboxes
-		opt1.addItemListener(this);
-		opt2.addItemListener(this);
-		opt3.addItemListener(this);
-		opt4.addItemListener(this);
-		opt5.addItemListener(this);
+		invertBox.addItemListener(this);
+		cropBox.addItemListener(this);
+		negativesBox.addItemListener(this);
+		despeckleBox.addItemListener(this);
+		watershedBox.addItemListener(this);
 
 		// Adds all checkboxes to the panel
-		checkBoxPanel.add(opt1);
-		checkBoxPanel.add(opt2);
-		checkBoxPanel.add(opt3);
-		checkBoxPanel.add(opt4);
-		checkBoxPanel.add(opt5);
+		checkBoxPanel.add(invertBox);
+		checkBoxPanel.add(cropBox);
+		checkBoxPanel.add(negativesBox);
+		checkBoxPanel.add(despeckleBox);
+		checkBoxPanel.add(watershedBox);
 
 		// Adds the panel to the window
 		add(checkBoxPanel);
@@ -615,23 +608,23 @@ class Option_Window extends JPanel implements ActionListener, ItemListener
 		// Grabs which object triggered the event
 		Object box = e.getItemSelectable();
 		// Sets the value of the checkbox that was checked to be true
-		if (opt1 == box)
+		if (invertBox == box)
 		{
 			invertCheck = true;
 		}
-		else if (opt2 == box)
+		else if (cropBox == box)
 		{
 			cropCheck = true;
 		}
-		else if (opt3 == box)
+		else if (negativesBox == box)
 		{
 			includeNegatives = true;
 		}
-		else if (opt4 == box)
+		else if (despeckleBox == box)
 		{
 			despeckleCheck = true;
 		}
-		else if (opt5 == box)
+		else if (watershedBox == box)
 		{
 			watershedCheck = true;
 		}
@@ -639,23 +632,23 @@ class Option_Window extends JPanel implements ActionListener, ItemListener
 		// If, in fact, the checkbox was deselected, then set the value to false
 		if(e.getStateChange() == ItemEvent.DESELECTED)
 		{
-			if (opt1 == box)
+			if (invertBox == box)
 			{
 				invertCheck = false;
 			}
-			else if (opt2 == box)
+			else if (cropBox == box)
 			{
 				cropCheck = false;
 			}
-			else if (opt3 == box)
+			else if (negativesBox == box)
 			{
 				includeNegatives = false;
 			}
-			else if (opt4 == box)
+			else if (despeckleBox == box)
 			{
 				despeckleCheck = false;
 			}
-			else if (opt5 == box)
+			else if (watershedBox == box)
 			{
 				watershedCheck = false;
 			}
@@ -888,8 +881,8 @@ class Graph_Window extends JPanel
 		p.setSize(750, 500); // Sets the size of the coordinate axes window that is generated
 		p.setTitle("Plot of CDFs, 2-D Distribution, 3-D Distribution (H = 0, H = 50, H = 100)"); // Sets the "figure's" title
 		p.setGrid(false); // No grid behind the plotted functions/points
-		p.setYRange(0, 100); // Sets the range of the y-axis
-		p.setXRange(max/(nBins+1), (max*(nBins+2))/(nBins+1)); // Sets the domain of the x-axis
+		//p.setYRange(0, 100); // Sets the range of the y-axis
+		//p.setXRange(max/(nBins+1), (max*(nBins+2))/(nBins+1)); // Sets the domain of the x-axis
 		p.setYLabel("Cumulative number, percent under size"); // Sets the label for the y-axis
 		p.setXLabel("Diameter (px)"); // Sets the label for the x-axis
 		p.setMarksStyle("none");
@@ -940,7 +933,7 @@ class Graph_Window extends JPanel
 		}
 
 		// Scales plot to fit data
-		p.fillPlot();
+		//p.fillPlot();
 
 		// Adds the legend for the data sets
 		p.addLegend(0, "2-D Distribution");
@@ -1094,6 +1087,17 @@ public class New_Plugin implements PlugInFilter
 	}
 
 	/**
+	 * This function has neither Easter nor eggs.
+	 */
+	private void dysfunction()
+	{
+		if (System.getProperty("os.name").equals("Linux"))
+		{
+			System.out.println("I'm climbin' in yo' kernel, snatchin' yo' penguins up.");
+		}
+	}
+
+	/**
 	 * Automatically crops the image.
 	 * This can be toggled on and off in run() via a boolean variable in Option_Window.
 	 */
@@ -1151,16 +1155,16 @@ public class New_Plugin implements PlugInFilter
 			pause(500);
 		}
 	}
-	
+
 	private float sizeBins(float[] data, ResultsTable rt)
 	{
 		float [] pars = new float [11];
 		stats(rt.getCounter(), data, pars);
 		// sd = 7, min = 3, max = 4
 		// use Scott's method (1979 Biometrika, 66:605-610) for optimal binning: 3.49*sd*N^-1/3
-		return (float)(3.49 * pars[7]*(float)Math.pow(rt.getCounter(), -1.0/3.0));		
+		return (float)(3.49 * pars[7]*(float)Math.pow(rt.getCounter(), -1.0/3.0));
 	}
-	
+
 	private int numBins(float[] data, ResultsTable rt)
 	{
 		float [] pars = new float [11];
@@ -1235,6 +1239,10 @@ public class New_Plugin implements PlugInFilter
 			data[i] = (float)(2*Math.sqrt(rt.getValue("Area", i) / Math.PI));
 		}
 
+
+		System.out.println("num particles = " + imageData.size());
+
+
 		float binWidth = sizeBins(data, rt);
 		int nBins = numBins(data, rt);
 
@@ -1271,11 +1279,114 @@ public class New_Plugin implements PlugInFilter
 			}
 		}
 
+		//new HistogramWindow("Distribution", imp, stats);
+
 		// Grabs the maximum diameter from the data set of diameters
 		double max = Collections.max(imageData);
 		// Creates and launches the Graph Window, which plots Na and each of the computed Nv sets
 		Graph_Window gw = new Graph_Window(Alg.Na, results, results2, results3, max, nBins);
-		gw.start();		
+		gw.start();
+
+
+		float[] volData = new float[data.length];
+		for (int i = 0; i < data.length; i++)
+		{
+			volData[i] = (float)((4.0/3.0)*Math.PI*Math.pow(data[i] / 2, 3));
+		}
+		float volBinWidth = sizeBins(volData, rt);
+
+		// original histogram
+		/*
+		{
+			JFrame window = new JFrame();
+			JPanel panel = new JPanel(new FlowLayout());
+			Histogram hist = new Histogram();
+
+			hist.setSize(750, 500); // Sets the size of the coordinate axes window that is generated
+			hist.setTitle("Histogram, 3-D Distributions"); // Sets the histogram's title
+			//hist.setBinWidth(binWidth);
+			hist.setBinWidth(volBinWidth);
+			//hist.setBinWidth(50);
+			System.out.println("volBinWidth = " + volBinWidth);
+			//hist.setGrid(false); // No grid behind the plotted functions/points
+			//hist.setYRange(0, 100); // Sets the range of the y-axis
+			//hist.setXRange(max/(nBins+1), (max*(nBins+2))/(nBins+1)); // Sets the domain of the x-axis
+			//hist.setYLabel("Cumulative number, percent under size"); // Sets the label for the y-axis
+			//hist.setXLabel("Diameter (px)"); // Sets the label for the x-axis
+			hist.setButtons(true); // Sets the buttons to return to original zoom, etc. to be active
+			for (int i = 0; i < data.length; i++)
+			{
+				//hist.addPoint(0, (4/3)*Math.PI*Math.pow(data[i]/2, 3));
+				hist.addPoint(0, volData[i]);
+
+				//hist.addPoint(1, results2[i]);
+				//hist.addPoint(2, results3[i]);
+			}
+			// Scales plot to fit data
+			hist.fillPlot();
+
+			// Adds the legend for the data sets
+			hist.addLegend(0, "H = 0 px");
+			//hist.addLegend(1, "H = 50 px");
+			//hist.addLegend(2, "H = 100 px");
+			//hist.setBars(.25, 1);
+			panel.add(hist);
+			window.setContentPane(panel);
+			window.setSize(750,500);
+			// Packs all of the components into the frame to prepare to make it visible
+			window.pack();
+			// Sets the location of the frame in the center of the screen
+			window.setLocationRelativeTo(null);
+			window.setVisible(true);
+		}
+		*/
+
+		/*
+		for (int i = 0; i < results.length; i++)
+		{
+			System.out.println(results[i]);
+		}
+		*/
+
+		// New Histogram
+		/*
+		{
+			JFrame window = new JFrame();
+			JPanel panel = new JPanel(new FlowLayout());
+
+			Plot resultsPlot = new Plot();
+			resultsPlot.setBars(true);
+
+			resultsPlot.setSize(750, 500); // Sets the size of the coordinate axes window that is generated
+			resultsPlot.setTitle("Histogram of 3-D Particle Distribution"); // Sets the plot's title
+			//resultsPlot.setXLabel("Cumulative number, percent under size"); // Sets the label for the x-axis
+			resultsPlot.setYLabel("Number of particles per unit volume"); // Sets the label for the y-axis
+			resultsPlot.setMarksStyle("none");
+			resultsPlot.setImpulses(true);
+			resultsPlot.setButtons(true); // Sets the buttons to return to original zoom, etc. to be active
+
+			for (int i = 0; i < results.length; i++)
+			{
+				resultsPlot.addPoint(0, i, results[i], false);
+				resultsPlot.addPoint(1, i, results2[i], false);
+				resultsPlot.addPoint(2, i, results3[i], false);
+			}
+
+			resultsPlot.addLegend(0, "H = 0 px");
+			resultsPlot.addLegend(1, "H = 50 px");
+			resultsPlot.addLegend(2, "H = 100 px");
+
+			panel.add(resultsPlot);
+			window.setContentPane(panel);
+			window.setSize(750,500);
+			window.setTitle("Histogram of 3-D Particle Distribution");
+			// Packs all of the components into the frame to prepare to make it visible
+			window.pack();
+			// Sets the location of the frame in the center of the screen
+			window.setLocationRelativeTo(null);
+			window.setVisible(true);
+		}
+		*/
 
 		// Updates the image on screen
 		imp.updateAndDraw();
