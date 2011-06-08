@@ -135,10 +135,10 @@ import javax.media.opengl.*;
 
 	macro 'Versatile Wand Tool-Cf00Lee55O2233' {
 		getCursorLoc(x, y, z, flags);
-		call('Versatile_Wand.mousePressed', x, y);
+		call('VersatileWand.mousePressed', x, y);
 	}
 	macro 'Versatile Wand Tool Options' {
-		call('Versatile_Wand.setOptions');
+		call('VersatileWand.setOptions');
 	}
 
   * Left-click the tool icon for selecting the tool
@@ -156,7 +156,7 @@ import javax.media.opengl.*;
   * Version 1.11, Michael Schmid, 2009-Jul-10: Color, non-contiguous added.
   *											NullPointerException fixed.
   */
-class Versatile_Wand
+class VersatileWand
 {
 	private final static int EIGHT_CONNECTED=0, FOUR_CONNECTED=1, NON_CONTIGUOUS=2;
 	private final static int UNKNOWN=0, OUTSIDE=1, INSIDE=-1;  //mask pixel values
@@ -180,7 +180,7 @@ class Versatile_Wand
 		yStart = Integer.parseInt(yString);
 		ImagePlus imp = WindowManager.getCurrentImage();
 		if (imp==null) return;
-		new Versatile_Wand().doWand(imp, xStart, yStart);
+		new VersatileWand().doWand(imp, xStart, yStart);
 	}
 
 	private void doWand(ImagePlus imp, int x0, int y0) {
@@ -474,7 +474,7 @@ class Versatile_Wand
  * @author Josh Thomas
  * @version 0.2, 06/02/11
  */
-class Option_Window extends JPanel implements ActionListener, ItemListener
+class OptionWindow extends JPanel implements ActionListener, ItemListener
 {
 	// Boolean variables determining whether each checkbox is checked
 	public static boolean invertCheck = false, cropCheck = false, includeNegatives = false, despeckleCheck = false, watershedCheck = false;
@@ -491,7 +491,7 @@ class Option_Window extends JPanel implements ActionListener, ItemListener
 	 * Default constructor for the class.
 	 * Defines the window components and adds them to the window.
 	 */
-	public Option_Window()
+	public OptionWindow()
 	{
 		// Applies a 3 row by 1 column grid layout to the window
 		super(new GridLayout(3,1));
@@ -584,10 +584,10 @@ class Option_Window extends JPanel implements ActionListener, ItemListener
 		// Creates the JFrame with the title of "New_Plugin Options"
 		frame = new JFrame("New_Plugin Options");
 		// Prevents the user from clicking the X on the window to close it
-		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 
 		// Creates a JComponent from the default constructor
-		JComponent contentPane = new Option_Window();
+		JComponent contentPane = new OptionWindow();
 		// Makes the content pane non-transparent
 		contentPane.setOpaque(true);
 		// Sets the content pane of the frame to be the content pane created by the constructor
@@ -832,7 +832,7 @@ class Alg
  * @author Josh Thomas
  * @version 0.2, 05/31/11
  */
-class Graph_Window extends JPanel
+class GraphWindow extends JPanel
 {
 	// Static global variables to conform to the initial constructor call and the second constructor call in setup
 	static JFrame frame;
@@ -856,7 +856,7 @@ class Graph_Window extends JPanel
 	 * @param Nv50 The 3-D particle distribution obtained in the New_Plugin class, with a thickness of 50 pixels.
 	 * @param Nv100 The 3-D particle distribution obtained in the New_Plugin class, with a thickness of 100 pixels.
 	*/
-	public Graph_Window(Vector<Double> Na, double[] Nv0, double[] Nv50, double[] Nv100, double max, int nBins)
+	public GraphWindow(Vector<Double> Na, double[] Nv0, double[] Nv50, double[] Nv100, double max, int nBins)
 	{
 		// Stores the input arguments into the class-local variables
 		this.Na = Na;
@@ -871,7 +871,7 @@ class Graph_Window extends JPanel
 	 * Second constructor for the class, called during the setup of the JFrame. This constructor
 	 * creates the Swing components and the Plot components. It places them in the JFrame.
 	*/
-	public Graph_Window()
+	public GraphWindow()
 	{
 		// Gives the class's JPanel (since it extends that) a BorderLayout.
 		super(new BorderLayout());
@@ -963,7 +963,7 @@ class Graph_Window extends JPanel
 		frame = new JFrame("Graph of 2-D CDF and 3-D CDF");
 
 		// Creates a JComponent from the secondary constructor
-		JComponent contentPane = new Graph_Window();
+		JComponent contentPane = new GraphWindow();
 		// Makes the content pane non-transparent
 		contentPane.setOpaque(true);
 		// Sets the content pane of the frame to be the content pane created by the constructor
@@ -990,7 +990,7 @@ class Graph_Window extends JPanel
 	}
 }
 
-class Launch_Window extends JPanel implements ActionListener
+class LaunchWindow extends JPanel implements ActionListener
 {
 	public static boolean finished = false;
 
@@ -1002,10 +1002,10 @@ class Launch_Window extends JPanel implements ActionListener
 
 	private static JFrame frame;
 
-	Graph_Window gw;
-	Particle_Box pb;
+	GraphWindow gw;
+	ParticleBox pb;
 
-	public Launch_Window(Graph_Window gw, Particle_Box pb)
+	public LaunchWindow(GraphWindow gw, ParticleBox pb)
 	{
 		// Applies a 3 row by 1 column grid layout to the window
 		super(new GridLayout(3,1));
@@ -1013,7 +1013,7 @@ class Launch_Window extends JPanel implements ActionListener
 		// Creates the JFrame
 		frame = new JFrame("Launch Windows");
 		// Prevents the user from clicking the X on the window to close it
-		frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+		frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 
 		this.gw = gw;
 		this.pb = pb;
@@ -1131,7 +1131,7 @@ class Launch_Window extends JPanel implements ActionListener
  * @author Josh Thomas
  * @version 0.1, 06/08/11
  */
-class Particle_Box extends JFrame implements GLEventListener, KeyListener, MouseListener, MouseMotionListener
+class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseListener, MouseMotionListener
 {
 	// Global Variables
 
@@ -1187,7 +1187,7 @@ class Particle_Box extends JFrame implements GLEventListener, KeyListener, Mouse
 	 * @param diam The maximum diameter from the analyzed image.
 	 * @param particles The number of particles counted in the image.
 	*/
-	public Particle_Box(int w, int h, double diam, int particles)
+	public ParticleBox(int w, int h, double diam, int particles)
 	{
 		// Sets the title for the JFrame
 		super("3-D Particle Visualization");
@@ -1230,7 +1230,7 @@ class Particle_Box extends JFrame implements GLEventListener, KeyListener, Mouse
 		// Sets the frame to appear in the center of the screen
 		setLocationRelativeTo(null);
 		// Closes only the Frame when the X (Close) button is pressed
-		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 		// Makes the frame visible
 		setVisible(true);
 		// Requests focus to the window
@@ -1376,10 +1376,11 @@ class Particle_Box extends JFrame implements GLEventListener, KeyListener, Mouse
 		gl.glColor3f(0.33f, 0.33f, 0.33f); // Sets the color for the lines
 		// Four vertices making up the first side, based on image dimensions
 		// and max particle diameter
-		gl.glVertex3f((float)(-imageW / 2), (float)(-imageH / 2), 2*maxDiam);
-		gl.glVertex3f((float)(-imageW / 2), (float)(imageH / 2), 2*maxDiam);
-		gl.glVertex3f((float)(-imageW / 2), (float)(imageH / 2), -2*maxDiam);
-		gl.glVertex3f((float)(-imageW / 2), (float)(-imageH / 2), -2*maxDiam);
+		//gl.glVertex3f((float)(-imageW / 2), (float)(-imageH / 2), 2*maxDiam);
+		gl.glVertex3f((-imageW / 2), (-imageH / 2), 2*maxDiam);
+		gl.glVertex3f((-imageW / 2), (imageH / 2), 2*maxDiam);
+		gl.glVertex3f((-imageW / 2), (imageH / 2), -2*maxDiam);
+		gl.glVertex3f((-imageW / 2), (-imageH / 2), -2*maxDiam);
 		gl.glEnd();
 
 		// Second side of the box - since the first side looped around, we only need
@@ -1387,20 +1388,20 @@ class Particle_Box extends JFrame implements GLEventListener, KeyListener, Mouse
 		gl.glBegin(GL.GL_LINE_STRIP);
 		gl.glColor3f(0.33f, 0.33f, 0.33f); // Sets the color for the lines
 		// Four vertices making up the second side
-		gl.glVertex3f((float)(-imageW / 2), (float)(-imageH / 2), 2*maxDiam);
-		gl.glVertex3f((float)(imageW / 2), (float)(-imageH / 2), 2*maxDiam);
-		gl.glVertex3f((float)(imageW / 2), (float)(imageH / 2), 2*maxDiam);
-		gl.glVertex3f((float)(-imageW / 2), (float)(imageH / 2), 2*maxDiam);
+		gl.glVertex3f((-imageW / 2), (-imageH / 2), 2*maxDiam);
+		gl.glVertex3f((imageW / 2), (-imageH / 2), 2*maxDiam);
+		gl.glVertex3f((imageW / 2), (imageH / 2), 2*maxDiam);
+		gl.glVertex3f((-imageW / 2), (imageH / 2), 2*maxDiam);
 		gl.glEnd();
 
 		// Third side of the box
 		gl.glBegin(GL.GL_LINE_STRIP);
 		gl.glColor3f(0.33f, 0.33f, 0.33f); // Sets the color for the lines
 		// Four vertices making up the third side
-		gl.glVertex3f((float)(imageW / 2), (float)(-imageH / 2), 2*maxDiam);
-		gl.glVertex3f((float)(imageW / 2), (float)(-imageH / 2), -2*maxDiam);
-		gl.glVertex3f((float)(imageW / 2), (float)(imageH / 2), -2*maxDiam);
-		gl.glVertex3f((float)(imageW / 2), (float)(imageH / 2), 2*maxDiam);
+		gl.glVertex3f((imageW / 2), (-imageH / 2), 2*maxDiam);
+		gl.glVertex3f((imageW / 2), (-imageH / 2), -2*maxDiam);
+		gl.glVertex3f((imageW / 2), (imageH / 2), -2*maxDiam);
+		gl.glVertex3f((imageW / 2), (imageH / 2), 2*maxDiam);
 		gl.glEnd();
 
 		// Fourth and final side of the box - no need to do the top and bottom
@@ -1408,10 +1409,10 @@ class Particle_Box extends JFrame implements GLEventListener, KeyListener, Mouse
 		gl.glBegin(GL.GL_LINE_STRIP);
 		gl.glColor3f(0.33f, 0.33f, 0.33f); // Sets the color for the lines
 		// Four vertices making up the fourth side
-		gl.glVertex3f((float)(imageW / 2), (float)(-imageH / 2), -2*maxDiam);
-		gl.glVertex3f((float)(-imageW / 2), (float)(-imageH / 2), -2*maxDiam);
-		gl.glVertex3f((float)(-imageW / 2), (float)(imageH / 2), -2*maxDiam);
-		gl.glVertex3f((float)(imageW / 2), (float)(imageH / 2), -2*maxDiam);
+		gl.glVertex3f((imageW / 2), (-imageH / 2), -2*maxDiam);
+		gl.glVertex3f((-imageW / 2), (-imageH / 2), -2*maxDiam);
+		gl.glVertex3f((-imageW / 2), (imageH / 2), -2*maxDiam);
+		gl.glVertex3f((imageW / 2), (imageH / 2), -2*maxDiam);
 		gl.glEnd();
 
 		// Pops the current matrix off of the stack
@@ -1477,13 +1478,13 @@ class Particle_Box extends JFrame implements GLEventListener, KeyListener, Mouse
 		// of the 3-D view to maintain the aspect ratio
 		if (w <= h)
 		{
-			gl.glOrtho(-(imageW), (imageW), -(imageH) * (float) h / (float) w, (imageH) * (float) h / (float) w, -(imageW + imageH), (imageW + imageH));
+			gl.glOrtho(-(imageW), (imageW), -(imageH) * (float) h / w, (imageH) * (float) h / w, -(imageW + imageH), (imageW + imageH));
 		}
 		// Similarly, if width is larger than height, scale to maintain original
 		// aspect ratio
 		else
 		{
-			gl.glOrtho(-(imageW) * (float) w / (float) h, (imageW) * (float) w / (float) h, -(imageH), (imageH), -(imageW + imageH), (imageW + imageH));
+			gl.glOrtho(-(imageW) * (float) w / h, (imageW) * (float) w / h, -(imageH), (imageH), -(imageW + imageH), (imageW + imageH));
 		}
 		// Return to model view
 		gl.glMatrixMode(GL.GL_MODELVIEW);
@@ -1728,7 +1729,7 @@ public class New_Plugin implements PlugInFilter
 
 	/**
 	 * Automatically crops the image.
-	 * This can be toggled on and off in run() via a boolean variable in Option_Window.
+	 * This can be toggled on and off in run() via a boolean variable in OptionWindow.
 	 */
 	private void autoCrop()
 	{
@@ -1754,8 +1755,8 @@ public class New_Plugin implements PlugInFilter
 			iter++;
 		}
 
-		// Use the Versatile_Wand in the white point and then crop the image.
-		new Versatile_Wand().mousePressed(Integer.toString(curX), Integer.toString(curY));
+		// Use the VersatileWand in the white point and then crop the image.
+		new VersatileWand().mousePressed(Integer.toString(curX), Integer.toString(curY));
 		IJ.run("Crop");
 	}
 
@@ -1847,7 +1848,7 @@ public class New_Plugin implements PlugInFilter
 		this.ip = ip;
 
 		// Generates the Option Window to determine what the user needs to do for the given image
-		Option_Window ow = new Option_Window();
+		OptionWindow ow = new OptionWindow();
 		ow.start();
 		// Waits until the Option Window is closed before proceeding
 		while (!ow.finished)
@@ -1943,7 +1944,7 @@ public class New_Plugin implements PlugInFilter
 		// Grabs the maximum diameter from the data set of diameters
 		double max = Collections.max(imageData);
 		// Creates and launches the Graph Window, which plots Na and each of the computed Nv sets
-		Graph_Window gw = new Graph_Window(Alg.Na, results, results2, results3, max, nBins);
+		GraphWindow gw = new GraphWindow(Alg.Na, results, results2, results3, max, nBins);
 		gw.start();
 
 
@@ -2049,11 +2050,11 @@ public class New_Plugin implements PlugInFilter
 
 		// Creates the 3-D view for the particles
 		// Passes in the image width, image height, maximum diameter, and number of particles
-		Particle_Box pb = new Particle_Box(imp.getWidth(), imp.getHeight(), max, rt.getCounter());
+		ParticleBox pb = new ParticleBox(imp.getWidth(), imp.getHeight(), max, rt.getCounter());
 		pb.run();
 
 
-		Launch_Window lw = new Launch_Window(gw, pb);
+		LaunchWindow lw = new LaunchWindow(gw, pb);
 		lw.start();
 
 
