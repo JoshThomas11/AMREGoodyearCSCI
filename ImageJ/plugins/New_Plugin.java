@@ -39,14 +39,11 @@ import javax.swing.*;
 
 // Pt Plot Packages
 import ptolemy.plot.Plot;
-import ptolemy.plot.Histogram;
 
-
+// OpenGL Packages
 import javax.media.opengl.glu.*;
 import javax.media.opengl.*;
-import com.sun.opengl.util.*;
 
-import java.nio.*;
 
 /*
  * +-------------------+
@@ -998,17 +995,19 @@ class Particle_Box extends JFrame implements GLEventListener, KeyListener, Mouse
 	private GLU glu;
 	private GLCapabilities caps;
 	private GLCanvas canvas;
-	private static final int BUFSIZE = 512;
+	//private static final int BUFSIZE = 512;
 	private Point pickPoint = new Point();
 	
+	GLUquadric quad;
+
 	int moving = 0, startx, starty;
-	
+
 	float[][] locations;
-	
+
 	float angle = 0;
 	float angle2 = 0;
 	//int counter = 0;
-	
+
 	int imageW = 0, imageH = 0;
 	float maxDiam = 0;
 	int numParts = 0;
@@ -1018,18 +1017,18 @@ class Particle_Box extends JFrame implements GLEventListener, KeyListener, Mouse
 	float mat_emission1[] = {0.33f, 0.33f, 0.33f, 1.0f};
 	float mat_emission2[] = {0.5f, 0.5f, 0.5f, 1.0f};
 	float clear_mat[] = {0.0f, 0.0f, 0.0f, 1.0f};
-	
+
 	// Light position
 	//float lightPosition[] = {-200.0f, 200.0f, 650.0f, 1.0f};
 	float lightPosition[] = {-20.0f, 20.0f, 150.0f, 1.0f};
-	
+
 	// Ambient
 	//float light_ambient[] = {0.35f, 0.2f, 0.2f, 1.0f};	// ambient light intensity
 	float light_ambient[] = {1.0f, 1.0f, 1.0f, 1.0f};	// ambient light intensity
-	
+
 	// Diffuse
 	float light_diffuse[] = {1.0f, 1.0f, 1.0f, 1.0f};		// diffuse light intensity
-	
+
 	// Specular
 	float light_specular[] = {1.0f, 1.0f, 1.0f, 1.0f};	// specular light intensity
 	float light_shininess[] = {100, 100, 100, 100};				// shininess value
@@ -1040,25 +1039,27 @@ class Particle_Box extends JFrame implements GLEventListener, KeyListener, Mouse
 		super("3-D Particle Visualization");
 		imageW = w;
 		imageH = h;
-		
+
 		System.out.println("imageW = " + imageW);
 		System.out.println("imageH = " + imageH);
 		
-		
+		glu = new GLU();
+		quad = glu.gluNewQuadric();
+
 		maxDiam = (float)diam;
 		numParts = particles;
 		caps = new GLCapabilities();
-		
-		caps.setDoubleBuffered(true);
+
+		//caps.setDoubleBuffered(true);
 		//System.out.println(caps.toString());
-				
+
 		canvas = new GLCanvas(caps);
 		canvas.addGLEventListener(this);
 		canvas.addKeyListener(this);
 		canvas.addMouseListener(this);
 		canvas.addMouseMotionListener(this);
 		getContentPane().add(canvas);
-		
+
 		locations = new float[numParts][3];
 		locationStorage();
 	}
@@ -1075,11 +1076,12 @@ class Particle_Box extends JFrame implements GLEventListener, KeyListener, Mouse
 	public void init(GLAutoDrawable drawable)
 	{
 		GL gl = drawable.getGL();
-		
+
 		gl.glClearColor(0, 0, 0, 1);
 		//gl.glClearColor(1, 1, 1, 1);
 		gl.glEnable(GL.GL_DEPTH_TEST);
-		
+		gl.glEnable(GL.GL_NORMALIZE);
+
 		gl.glLightfv(GL.GL_LIGHT0, GL.GL_POSITION, lightPosition, 0);
 		gl.glLightfv(GL.GL_LIGHT0, GL.GL_AMBIENT, light_ambient, 0);
 		gl.glLightfv(GL.GL_LIGHT0, GL.GL_DIFFUSE, light_diffuse, 0);
@@ -1090,11 +1092,11 @@ class Particle_Box extends JFrame implements GLEventListener, KeyListener, Mouse
 		gl.glOrtho(-(imageW), (imageW), -(imageH), (imageH), -(imageW + imageH), (imageW + imageH));
 		gl.glMatrixMode(GL.GL_MODELVIEW);
 	}
-	
+
 	public void locationStorage()
 	{
 		Random RNG = new Random();
-		
+
 		for (int q = 0; q < numParts; q++)
 		{
 			locations[q][0] = (float) RNG.nextDouble() * (imageW / 2);
@@ -1118,58 +1120,85 @@ class Particle_Box extends JFrame implements GLEventListener, KeyListener, Mouse
 	public void display(GLAutoDrawable drawable)
 	{
 		GL gl = drawable.getGL();
-		GLUT glut = new GLUT();
-		
+
 		// Clears the viewport and depth buffer
 		gl.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
 		gl.glLoadIdentity();
-		
+
 		gl.glEnable(GL.GL_LIGHTING);
 		gl.glEnable(GL.GL_LIGHT0);
-		
+
 		gl.glPushMatrix();
-		//gl.glTranslatef(0, 0, 2*maxDiam+100);
-		//gl.glTranslatef(0, 0, 2*maxDiam);
+
 		// Perform scene rotations based on user mouse input.
 		gl.glRotatef(angle2, 1, 0, 0);
 		gl.glRotatef(angle, 0, 1, 0);
 		gl.glPushMatrix();
 		
-		gl.glPushMatrix();
-		gl.glScalef(imageW, imageH, 4*maxDiam);
-		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_EMISSION, clear_mat, 0);
-		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_AMBIENT, mat_emission1, 0);
-		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_DIFFUSE, mat_emission1, 0);
-		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_SPECULAR, mat_emission1, 0);
-		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_SHININESS, light_shininess, 0);
-		
-		glut.glutWireCube(1.0f);
-		gl.glPopMatrix();
-	
-		
-		//gl.glEnable(GL.GL_POLYGON_OFFSET_FILL);
-		//gl.glPolygonOffset(-1.0f, 1.0f);
+		gl.glRotatef(-60, 1, 0, 0);
+
+		// Sets up the cube
+		drawBoundingBox(drawable);		
+
 		// Sets up the spheres
 		for(int q = 0; q < numParts; q++)
 		{
-			drawShapes(drawable, locations[q][0], locations[q][1], locations[q][2], maxDiam);
+			drawParticles(drawable, locations[q][0], locations[q][1], locations[q][2], maxDiam);
 		}
-		//gl.glDisable(GL.GL_POLYGON_OFFSET_FILL);
-		
-		
+
 		gl.glDisable(GL.GL_LIGHTING);
-	
+
 		gl.glPopMatrix();
 		gl.glPopMatrix();
-	
+
 		canvas.swapBuffers();
 	}
 	
-	void drawShapes(GLAutoDrawable drawable, float x, float y, float z, float maxDiam)
+	void drawBoundingBox(GLAutoDrawable drawable)
 	{
 		GL gl = drawable.getGL();
-		GLUT glut = new GLUT();
 		
+		gl.glPushMatrix();
+		
+		gl.glBegin(GL.GL_LINE_LOOP);
+		gl.glColor3f(0.33f, 0.33f, 0.33f);
+		gl.glVertex3f((float)(-imageW / 2), (float)(-imageH / 2), 2*maxDiam);
+		gl.glVertex3f((float)(-imageW / 2), (float)(imageH / 2), 2*maxDiam);
+		gl.glVertex3f((float)(-imageW / 2), (float)(imageH / 2), -2*maxDiam);
+		gl.glVertex3f((float)(-imageW / 2), (float)(-imageH / 2), -2*maxDiam);
+		gl.glEnd();
+		
+		gl.glBegin(GL.GL_LINE_STRIP);
+		gl.glColor3f(0.33f, 0.33f, 0.33f);
+		gl.glVertex3f((float)(-imageW / 2), (float)(-imageH / 2), 2*maxDiam);
+		gl.glVertex3f((float)(imageW / 2), (float)(-imageH / 2), 2*maxDiam);
+		gl.glVertex3f((float)(imageW / 2), (float)(imageH / 2), 2*maxDiam);
+		gl.glVertex3f((float)(-imageW / 2), (float)(imageH / 2), 2*maxDiam);
+		gl.glEnd();
+		
+		gl.glBegin(GL.GL_LINE_STRIP);
+		gl.glColor3f(0.33f, 0.33f, 0.33f);
+		gl.glVertex3f((float)(imageW / 2), (float)(-imageH / 2), 2*maxDiam);
+		gl.glVertex3f((float)(imageW / 2), (float)(-imageH / 2), -2*maxDiam);
+		gl.glVertex3f((float)(imageW / 2), (float)(imageH / 2), -2*maxDiam);
+		gl.glVertex3f((float)(imageW / 2), (float)(imageH / 2), 2*maxDiam);
+		gl.glEnd();
+		
+		gl.glBegin(GL.GL_LINE_STRIP);
+		gl.glColor3f(0.33f, 0.33f, 0.33f);
+		gl.glVertex3f((float)(imageW / 2), (float)(-imageH / 2), -2*maxDiam);
+		gl.glVertex3f((float)(-imageW / 2), (float)(-imageH / 2), -2*maxDiam);
+		gl.glVertex3f((float)(-imageW / 2), (float)(imageH / 2), -2*maxDiam);
+		gl.glVertex3f((float)(imageW / 2), (float)(imageH / 2), -2*maxDiam);
+		gl.glEnd();
+		
+		gl.glPopMatrix();
+	}
+
+	void drawParticles(GLAutoDrawable drawable, float x, float y, float z, float maxDiam)
+	{
+		GL gl = drawable.getGL();
+
 		gl.glPushMatrix();
 		gl.glTranslatef(x, y, z);
 		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_EMISSION, clear_mat, 0);
@@ -1177,21 +1206,27 @@ class Particle_Box extends JFrame implements GLEventListener, KeyListener, Mouse
 		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_DIFFUSE, mat_emission2, 0);
 		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_SPECULAR, mat_emission2, 0);
 		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_SHININESS, light_shininess, 0);
-		glut.glutSolidSphere(maxDiam / 2, 20, 20);
+		
+		glu.gluSphere(quad, maxDiam / 2, 25, 14);	// if some particles flicker while rotating, lower the second and third parameters
+		
 		gl.glPopMatrix();
 	}
 
 	public void reshape(GLAutoDrawable drawable, int x, int y, int w, int h)
 	{
 		GL gl = drawable.getGL();
-		
+
 		gl.glViewport(0, 0, w, h);
 		gl.glMatrixMode(GL.GL_PROJECTION);
-		gl.glLoadIdentity();          
-		//if (w <= h) gl.glOrtho(-(1.5*imageW), (1.5*imageW), -(1.5*imageH) * (float) h / (float) w, (1.5*imageH) * (float) h / (float) w, -(imageW + imageH), (imageW + imageH));
-		if (w <= h) gl.glOrtho(-(imageW), (imageW), -(imageH) * (float) h / (float) w, (imageH) * (float) h / (float) w, -(imageW + imageH), (imageW + imageH));
-		//else gl.glOrtho(-(1.5*imageW) * (float) w / (float) h, (1.5*imageW) * (float) w / (float) h, -(1.5*imageH), (1.5*imageH), -(imageW + imageH), (imageW + imageH)); 
-		else gl.glOrtho(-(imageW) * (float) w / (float) h, (imageW) * (float) w / (float) h, -(imageH), (imageH), -(imageW + imageH), (imageW + imageH)); 
+		gl.glLoadIdentity();
+		if (w <= h)
+		{
+			gl.glOrtho(-(imageW), (imageW), -(imageH) * (float) h / (float) w, (imageH) * (float) h / (float) w, -(imageW + imageH), (imageW + imageH));
+		}
+		else
+		{
+			gl.glOrtho(-(imageW) * (float) w / (float) h, (imageW) * (float) w / (float) h, -(imageH), (imageH), -(imageW + imageH), (imageW + imageH));
+		}
 		gl.glMatrixMode(GL.GL_MODELVIEW);
 	}
 
@@ -1205,14 +1240,14 @@ class Particle_Box extends JFrame implements GLEventListener, KeyListener, Mouse
 
 	public void keyPressed(KeyEvent key)
 	{
-		switch (key.getKeyChar()) {
-		case KeyEvent.VK_ESCAPE:
-			//System.exit(0);
-			dispose();
-			break;
+		switch (key.getKeyChar())
+		{
+			case KeyEvent.VK_ESCAPE:
+				dispose();
+				break;
 
-		default:
-			break;
+			default:
+				break;
 		}
 	}
 
@@ -1229,10 +1264,10 @@ class Particle_Box extends JFrame implements GLEventListener, KeyListener, Mouse
 		pickPoint = mouse.getPoint();
 		int x = pickPoint.x;
 		int y = pickPoint.y;
-		
+
 		startx = x;
 		starty = y;
-		
+
 		canvas.display();
 	}
 
@@ -1247,23 +1282,23 @@ class Particle_Box extends JFrame implements GLEventListener, KeyListener, Mouse
 	public void mouseExited(MouseEvent mouse)
 	{
 	}
-	
+
 	public void mouseMoved(MouseEvent mouse)
 	{
 	}
-	
+
 	public void mouseDragged(MouseEvent mouse)
 	{
 		pickPoint = mouse.getPoint();
 		int x = pickPoint.x;
 		int y = pickPoint.y;
-		
+
 		angle = angle + (x - startx);
 		angle2 = angle2 + (y - starty);
-		
+
 		startx = x;
 		starty = y;
-		
+
 		canvas.display();
 	}
 }
@@ -1670,10 +1705,10 @@ public class New_Plugin implements PlugInFilter
 			window.setVisible(true);
 		}
 		*/
-		
+
 		Particle_Box pb = new Particle_Box(imp.getWidth(), imp.getHeight(), max, rt.getCounter());
 		pb.run();
-		
+
 
 		// Updates the image on screen
 		imp.updateAndDraw();
