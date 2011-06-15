@@ -2,7 +2,6 @@ import ij.*;
 import ij.process.*;
 import ij.gui.*;
 import ij.plugin.filter.*;
-import ij.measure.ResultsTable;
 import ij.measure.Calibration;
 
 import java.awt.*;
@@ -150,8 +149,8 @@ class VersatileWand
 		ByteProcessor maskIp = new ByteProcessor(width, height);
 		byte[] mPixels = (byte[])maskIp.getPixels();
 		// offsets to neighboring pixels in x, y and pixel number
-		int[] dirXoffset = new int[] {	0,	  1,	 1,	 1,		0,	 -1,	  -1,	-1	};
-		int[] dirYoffset = new int[] {   -1,	 -1,	 0,	 1,		1,	  1,	   0,	-1,   };
+		int[] dirXoffset = new int[] {	0,	1,	1,	1,	0,	-1,	-1,	-1	};
+		int[] dirYoffset = new int[] {	-1,	-1,	0,	1,	1,	1,	0,	-1,   };
 		int[] dirOffset  = new int[] {-width, -width+1, +1, +width+1, +width, +width-1,   -1, -width-1 };
 		// pixelPointers array for positions that we have to process; initial size is 4096 = 0x1000 points
 		int pixelPointerMask = 0xf;   //binary AND with this mask gets array index

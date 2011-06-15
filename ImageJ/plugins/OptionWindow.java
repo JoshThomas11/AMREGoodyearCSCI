@@ -20,11 +20,10 @@ import javax.swing.event.*;
 class OptionWindow extends JPanel implements ActionListener, ItemListener, ChangeListener
 {
 	// Boolean variables determining whether each checkbox is checked
-	public static boolean invertCheck = false, cropCheck = false, includeNegatives = false, despeckleCheck = false, watershedCheck = false, thresholdCheck = false, grayscaleCheck = false, removeScaleCheck = false;
+	public static boolean invertCheck, cropCheck, includeNegatives, despeckleCheck, watershedCheck, thresholdCheck, grayscaleCheck, removeScaleCheck;
 	// Keeps track of if the window has been closed
-	public static boolean finished = false;
+	public static boolean finished;
 	public static int percentParticles = 100;
-
 
 	// Swing objects
 	// Checkboxes for each property
@@ -41,8 +40,16 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 		// Applies a 4 row by 1 column grid layout to the window
 		super(new BorderLayout());
 		
-		// fixes bug when opening new image
+		// fixes bug when running multiple images sequentially
 		finished = false;
+		invertCheck = false;
+		cropCheck = false;
+		includeNegatives = false;
+		despeckleCheck = false;
+		watershedCheck = false;
+		thresholdCheck = false;
+		grayscaleCheck = false;
+		removeScaleCheck = false;
 		
 		// First panel of components in the window (with components centered)
 		JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));

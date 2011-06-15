@@ -61,7 +61,7 @@ class Alg
 			// Stores the value in Na
 			Na.add(i, (sum/area));
 			sum = 0;
-		}
+		}		
 
 		// Constructs the transition matrix, A (note that A is an upper-triangular matrix)
 		double[][] A = new double[nBins+1][nBins+1];
@@ -107,6 +107,7 @@ class Alg
 			Nv[k] = (Na.elementAt(k) - sum) / A[k][k];
 		}
 		// Returns the 3-D distribution
+		
 		return Nv;
 	}
 

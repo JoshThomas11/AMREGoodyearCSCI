@@ -25,6 +25,7 @@
 
 // ImageJ Packages
 import ij.*;
+import ij.gui.*;
 import ij.process.*;
 import ij.plugin.filter.*;
 import ij.measure.ResultsTable;
@@ -38,7 +39,7 @@ import java.util.*;
  * +--------------------+
  * | Associated Classes |
  * +--------------------+
- * 
+ *
  * Alg.java
  * GraphWindow.java
  * LaunchWindow.java
@@ -68,10 +69,14 @@ public class New_Plugin implements PlugInFilter
 	// Global ImageJ variables
 	ImagePlus imp;
 	ImageProcessor ip;
+	ImagePlus impCopy;
+	ImageProcessor ipCopy;
+	//Roi roiCopy;
 
-	public int setup(String arg, ImagePlus imp)
+	public int setup(String arg, ImagePlus inIMP)
 	{
-		this.imp = imp;
+		imp = inIMP;
+		impCopy = imp.duplicate();
 		return DOES_ALL;
 	}
 
@@ -161,8 +166,10 @@ public class New_Plugin implements PlugInFilter
 	/**
 	 * Automatically crops the image.
 	 * This can be toggled on and off in run() via a boolean variable in OptionWindow.
+	 * 
+	 * @return A copy of the region of interest that was cropped.
 	 */
-	private void autoCrop()
+	private Roi autoCrop()
 	{
 		// Find a white point in the image.
 		ColorProcessor cproc = new ColorProcessor(ip.createImage());
@@ -185,14 +192,27 @@ public class New_Plugin implements PlugInFilter
 			}
 			iter++;
 		}
-		
+
 		System.out.println(iter);
 		System.out.println("wandX = " + curX);
 		System.out.println("wandY = " + curY);
 
 		// Use the VersatileWand in the white point and then crop the image.
 		new VersatileWand().mousePressed(Integer.toString(curX), Integer.toString(curY));
+		
+		Roi tmpROI = (Roi)imp.getRoi().clone();
+				
 		IJ.run("Crop");
+		
+		return tmpROI;
+	}
+	
+	public static ImagePlus copyCrop(ImageProcessor inIP, Roi inROI)
+	{
+		ImageProcessor tempIP = inIP;
+		tempIP.setRoi(inROI);
+		tempIP = tempIP.crop();
+		return new ImagePlus("Cropped copy", tempIP);
 	}
 
 	/**
@@ -214,10 +234,19 @@ public class New_Plugin implements PlugInFilter
 		// Wait to make sure the Threshold dialog is ready.
 		pause(500);
 
-		// Wait for the user to close the Threshold window
-		while ((WindowManager.getFrontWindow() != null) && (WindowManager.getFrontWindow().getTitle().equals("Threshold")))
+		Frame frame = WindowManager.getFrame("Threshold");
+
+		try
 		{
-			pause(500);
+			// Wait for the user to close the Threshold window
+			while (frame.isShowing())
+			{
+				pause(500);
+			}
+		}
+		catch (NullPointerException e)
+		{
+			System.err.println("Threshold frame is null");
 		}
 	}
 
@@ -275,21 +304,22 @@ public class New_Plugin implements PlugInFilter
 	 *
 	 * @param ip An ImageProcessor object that is used to work with the image.
 	*/
-	public void run(ImageProcessor ip)
+	public void run(ImageProcessor inIP)
 	{
 		// PlugInFilter automatically locks images, so we need to unlock them.
 		imp.unlock();
 
-		this.ip = ip;
-		
+		ip = inIP;
+		ipCopy = ip.duplicate();
+
 		// Generates the Option Window to determine what the user needs to do for the given image
 		OptionWindow ow = new OptionWindow();
 		ow.start();
 		// Waits until the Option Window is closed before proceeding
 		while (!ow.finished)
 		{
-			pause(2500);
-		}		
+			pause(1500);
+		}
 		// Checks if the user specified that the image needs to be converted to 8-bit grayscale
 		if (ow.grayscaleCheck)
 		{
@@ -299,7 +329,7 @@ public class New_Plugin implements PlugInFilter
 		}
 		// Checks if the user specified that the image needs to have its scale removed
 		if (ow.removeScaleCheck)
-		{		
+		{
 			IJ.run(imp, "Set Scale...", "distance=0 known=0 pixel=1 unit=pixel");
 		}
 		// Checks if the user specified that the image needs its LUT inverted
@@ -308,15 +338,15 @@ public class New_Plugin implements PlugInFilter
 			ip.invert();
 			//ip.invertLut();
 		}
-		// Checks if the user specified that the image needs to be double binarized
+		// Checks if the user specified that the image needs to be binarized
 		if (ow.thresholdCheck)
 		{
 			threshold();
-		}		
+		}
 		// Checks if the user specified that the image needs to be cropped
 		if (ow.cropCheck)
 		{
-			autoCrop();
+			impCopy = copyCrop(ipCopy, autoCrop());	
 		}
 		// Checks if the user specified that the image needs to be despeckled
 		if (ow.despeckleCheck)
@@ -332,7 +362,7 @@ public class New_Plugin implements PlugInFilter
 		}
 
 		// Analyze particles
-		IJ.run("Set Measurements...", "area shape redirect=None decimal=3");
+		IJ.run("Set Measurements...", "area center shape redirect=None decimal=3");
 		IJ.run("Analyze Particles...");
 		//IJ.run("Analyze Particles...", "show=Outlines display exclude clear record");
 		//IJ.run("Analyze Particles...", "show=Outlines display clear record");
@@ -355,6 +385,7 @@ public class New_Plugin implements PlugInFilter
 		System.out.println("num particles = " + imageData.size());
 
 		float binWidth = sizeBins(data, rt);
+		System.out.println("binWidth = " + binWidth);
 		int nBins = numBins(data, rt);
 
 		//nBins = 5;
@@ -499,13 +530,37 @@ public class New_Plugin implements PlugInFilter
 		}
 		*/
 
+		double[][] centroids = new double[rt.getCounter()][2];
+
+		for (int i = 0; i < centroids.length; i++)
+		{
+			centroids[i][0] = rt.getValue("XM", i);
+			centroids[i][1] = rt.getValue("YM", i);
+		}
+		
+		WindowManager.setCurrentWindow(new ImageWindow(impCopy));
+		
+		for (int i = 0; i < centroids.length; i++)
+		{
+			/*
+			System.out.print("(" + (int)centroids[i][0] + ", " + (int)centroids[i][1] + "): " + impCopy.getPixel((int)centroids[i][0], (int)centroids[i][1])[0] + " "); // R
+			System.out.print(impCopy.getPixel((int)centroids[i][0], (int)centroids[i][1])[1] + " "); // G
+			System.out.print(impCopy.getPixel((int)centroids[i][0], (int)centroids[i][1])[2] + " "); // B
+			System.out.print(impCopy.getPixel((int)centroids[i][0], (int)centroids[i][1])[3]); // a
+			System.out.println();
+			*/
+		}
+
 		// Creates the 3-D view for the particles
 		// Passes in the image width, image height, maximum diameter, and number of particles
-		ParticleBox pb = new ParticleBox(imp.getWidth(), imp.getHeight(), max, rt.getCounter(), ow.percentParticles);
-		pb.run();
+		if (ow.percentParticles > 0)
+		{
+			ParticleBox pb = new ParticleBox(imp.getWidth(), imp.getHeight(), max, rt.getCounter(), centroids, ow.percentParticles);
+			pb.run();
 
-		LaunchWindow lw = new LaunchWindow(gw, pb);
-		lw.start();
+			//LaunchWindow lw = new LaunchWindow(gw, pb);
+			//lw.start();
+		}
 
 		// Updates the image on screen
 		imp.updateAndDraw();

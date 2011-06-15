@@ -43,10 +43,12 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 	GLUquadric quad;
 
 	// Two-dimensional array to store random locations of particles
-	float[][] locations;
+	float[] locations;
 	
 	int percentParts;
 	int[] chosenParts;
+	
+	double[][] centroids;
 
 	// Variables to be passed in to the constructor
 	int imageW = 0, imageH = 0;
@@ -82,7 +84,7 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 	 * @param particles The number of particles counted in the image.
 	 * @param percentParticles The percent of particles to display.
 	 */
-	public ParticleBox(int w, int h, double diam, int particles, int percentParticles)
+	public ParticleBox(int w, int h, double diam, int particles, double[][] centers, int percentParticles)
 	{
 		// Sets the title for the JFrame
 		super("3-D Particle Visualization");
@@ -90,6 +92,8 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 		// Initializes the OpenGL variables
 		glu = new GLU();
 		quad = glu.gluNewQuadric();
+		
+		centroids = centers;
 
 		// Assigns the passed-in data to the class variables
 		imageW = w;
@@ -111,7 +115,7 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 		getContentPane().add(canvas); // Adds the GLCanvas to the JFrame
 
 		// Initializes the locations array
-		locations = new float[numParts][3];
+		locations = new float[numParts];
 		// Creates and stores the locations for the particles
 		locationStorage();
 		if (percentParts != 100)
@@ -183,6 +187,7 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 		// For all particles in the image, creates random locations
 		for (int q = 0; q < numParts; q++)
 		{
+			/*
 			// x-location, scaled for size of image
 			locations[q][0] = (float) RNG.nextDouble() * (imageW / 2);
 			// Randomly determines if x-location should be positive or negative
@@ -197,12 +202,14 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 			{
 				locations[q][1] *= -1;
 			}
+			*/
+			
 			// z-location, scaled based on maximum diameter of particles
-			locations[q][2] = (float) RNG.nextDouble() * maxDiam;
+			locations[q] = (float) RNG.nextDouble() * maxDiam;
 			// Randomly determines if z-location should be positive or negative
 			if (RNG.nextBoolean())
 			{
-				locations[q][2] *= -1;
+				locations[q] *= -1;
 			}
 		}
 	}
@@ -211,7 +218,7 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 	{
 		Random RNG = new Random();
 		
-		chosenParts = new int[(int)(numParts * ((float)percentParts/100.0f))];
+		chosenParts = new int[(int)(numParts * (percentParts/100.0f))];
 		
 		for (int i = 0; i < chosenParts.length; i++)
 		{
@@ -271,20 +278,21 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 		// Sets up the boundaries of the slice of the sample
 		drawBoundingBox(drawable);
 
+		gl.glTranslatef(-imageW/2, -imageH/2, 0);
 		if (percentParts == 100)
 		{
 			// Sets up the particles (spheres)
 			for(int q = 0; q < numParts; q++)
 			{
 				// Draws the particles, given the stored locations and the maximum diameter in the image
-				drawParticles(drawable, locations[q][0], locations[q][1], locations[q][2], maxDiam);
+				drawParticles(drawable, centroids[q][0], centroids[q][1], locations[q], maxDiam);
 			}
 		}
 		else
 		{
 			for (int q = 0; q < chosenParts.length; q++)
 			{
-				drawParticles(drawable, locations[chosenParts[q]][0], locations[chosenParts[q]][1], locations[chosenParts[q]][2], maxDiam);
+				drawParticles(drawable, centroids[chosenParts[q]][0], centroids[chosenParts[q]][1], locations[chosenParts[q]], maxDiam);
 			}
 		}			
 
@@ -368,7 +376,7 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 	 * @param z The z-position of the center of the particle.
 	 * @param maxDiam The maximum diameter of the particles in the image.
 	*/
-	void drawParticles(GLAutoDrawable drawable, float x, float y, float z, float maxDiam)
+	void drawParticles(GLAutoDrawable drawable, double x, double y, float z, float maxDiam)
 	{
 		// Gets the current GL object
 		GL gl = drawable.getGL();
@@ -376,7 +384,7 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 		// Pushes the current matrix on the stack
 		gl.glPushMatrix();
 		// Translates the sphere to its (x, y, z) location
-		gl.glTranslatef(x, y, z);
+		gl.glTranslatef((float)x, (float)y, z);
 		// Sets the material properties for the sphere - allows for lighting
 		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_EMISSION, clear_mat, 0);
 		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_AMBIENT, mat_emission2, 0);

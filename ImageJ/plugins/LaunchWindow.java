@@ -1,5 +1,4 @@
 import java.awt.*;
-import java.util.*;
 import java.awt.event.*;
 import javax.swing.*;
 
@@ -47,7 +46,7 @@ class LaunchWindow extends JPanel implements ActionListener
 		// First panel of components in the window (with components centered)
 		JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
 		// Label giving the user(s) instructions on how to proceed with selecting the relevant options
-		JLabel instructs = new JLabel("<html>If you need to relaunch a window,<br>click the appropriate button.</html>");
+		JLabel instructs = new JLabel("If you need to relaunch a window, click the appropriate button.");
 		// Adds the label to the panel
 		topPanel.add(instructs);
 		// Adds the panel to the window (first row)
