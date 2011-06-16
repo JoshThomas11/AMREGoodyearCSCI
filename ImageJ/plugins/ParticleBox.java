@@ -44,10 +44,10 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 
 	// Two-dimensional array to store random locations of particles
 	float[] locations;
-	
+
 	int percentParts;
 	int[] chosenParts;
-	
+
 	double[][] centroids;
 
 	// Variables to be passed in to the constructor
@@ -92,7 +92,7 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 		// Initializes the OpenGL variables
 		glu = new GLU();
 		quad = glu.gluNewQuadric();
-		
+
 		centroids = centers;
 
 		// Assigns the passed-in data to the class variables
@@ -203,7 +203,7 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 				locations[q][1] *= -1;
 			}
 			*/
-			
+
 			// z-location, scaled based on maximum diameter of particles
 			locations[q] = (float) RNG.nextDouble() * maxDiam;
 			// Randomly determines if z-location should be positive or negative
@@ -213,13 +213,13 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 			}
 		}
 	}
-	
+
 	public void particleStorage()
 	{
 		Random RNG = new Random();
-		
+
 		chosenParts = new int[(int)(numParts * (percentParts/100.0f))];
-		
+
 		for (int i = 0; i < chosenParts.length; i++)
 		{
 			boolean goAgain = false;
@@ -227,7 +227,7 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 			{
 				goAgain = false;
 				int tmp = RNG.nextInt(numParts);
-				
+
 				for (int j = 0; j < i; j++)
 				{
 					if (chosenParts[j] == tmp)
@@ -236,7 +236,7 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 					}
 				}
 				if (!goAgain)
-				{		
+				{
 					chosenParts[i] = tmp;
 				}
 			}
@@ -294,7 +294,7 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 			{
 				drawParticles(drawable, centroids[chosenParts[q]][0], centroids[chosenParts[q]][1], locations[chosenParts[q]], maxDiam);
 			}
-		}			
+		}
 
 		// Disables lighting
 		gl.glDisable(GL.GL_LIGHTING);
@@ -468,7 +468,7 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 				// Close JFrame and free up memory
 				dispose();
 				break;
-				
+
 			case KeyEvent.VK_EQUALS:
 				angle = 20;
 				angle2 = 15;

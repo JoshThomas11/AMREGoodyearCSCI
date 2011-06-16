@@ -19,17 +19,17 @@ import javax.swing.event.*;
  */
 class OptionWindow extends JPanel implements ActionListener, ItemListener, ChangeListener
 {
-	// Boolean variables determining whether each checkbox is checked
-	public static boolean invertCheck, cropCheck, includeNegatives, despeckleCheck, watershedCheck, thresholdCheck, grayscaleCheck, removeScaleCheck;
+	// Boolean variables for each checkbox
+	public boolean invertCheck, cropCheck, includeNegatives, despeckleCheck, watershedCheck, thresholdCheck, grayscaleCheck, removeScaleCheck;
 	// Keeps track of if the window has been closed
-	public static boolean finished;
-	public static int percentParticles = 100;
+	public boolean finished;
+	public int percentParticles = 100;
 
 	// Swing objects
 	// Checkboxes for each property
 	JCheckBox invertBox, cropBox, negativesBox, despeckleBox, watershedBox, thresholdBox, grayscaleBox, removeScaleBox;
-	protected static JButton OKButton; // OK Button
-	private static JFrame frame; // Main JFrame for the window
+	protected JButton OKButton; // OK Button
+	private JFrame frame; // Main JFrame for the window
 
 	/**
 	 * Default constructor for the class.
@@ -39,18 +39,14 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 	{
 		// Applies a 4 row by 1 column grid layout to the window
 		super(new BorderLayout());
-		
-		// fixes bug when running multiple images sequentially
-		finished = false;
-		invertCheck = false;
-		cropCheck = false;
-		includeNegatives = false;
-		despeckleCheck = false;
-		watershedCheck = false;
-		thresholdCheck = false;
-		grayscaleCheck = false;
-		removeScaleCheck = false;
-		
+
+		// Creates the JFrame with the title of "New_Plugin Options"
+		frame = new JFrame("New_Plugin Options");
+		// Prevents the user from clicking the X on the window to close it
+		frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+		// Frame cannot be resized
+		frame.setResizable(false);
+
 		// First panel of components in the window (with components centered)
 		JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
 		// Label giving the user(s) instructions on how to proceed with selecting the relevant options
@@ -63,7 +59,7 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 		// Second panel of components in the window (left-aligned)
 		//JPanel checkBoxPanel = new JPanel(new FlowLayout());
 		JPanel checkBoxPanel = new JPanel(new GridLayout(3, 3));
-		
+
 		// Creates the checkboxes for the options
 		invertBox = new JCheckBox("Invert LUT");
 		cropBox = new JCheckBox("Auto Crop");
@@ -73,7 +69,7 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 		thresholdBox = new JCheckBox("Binarize Image");
 		grayscaleBox = new JCheckBox("Convert to Grayscale");
 		removeScaleBox = new JCheckBox("Remove Scale");
-		
+
 		// Sets the Key Event for the checkboxes
 		invertBox.setMnemonic(KeyEvent.VK_I);
 		cropBox.setMnemonic(KeyEvent.VK_C);
@@ -83,7 +79,7 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 		thresholdBox.setMnemonic(KeyEvent.VK_T);
 		grayscaleBox.setMnemonic(KeyEvent.VK_G);
 		removeScaleBox.setMnemonic(KeyEvent.VK_S);
-		
+
 		// Sets the initial state of the checkboxes to be unchecked
 		invertBox.setSelected(false);
 		cropBox.setSelected(false);
@@ -116,7 +112,7 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 
 		// Adds the panel to the window
 		add(checkBoxPanel, BorderLayout.CENTER);
-		
+
 		JSlider slider = new JSlider(0, 100, percentParticles);
 		slider.addChangeListener(this);
 		slider.setMajorTickSpacing(10);
@@ -131,14 +127,6 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 		labelPanel.add(partLabel);
 		slidePanel.add(labelPanel, BorderLayout.NORTH);
 		slidePanel.add(slider, BorderLayout.CENTER);
-		//add(slidePanel);
-		
-		//JPanel sliderPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-		//sliderPanel.add(slider);
-		//add(sliderPanel);
-		
-		//add(slider);
-		
 
 		// Third panel of components in the window (right-aligned)
 		JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -153,49 +141,21 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 		OKButton.setSize(100,75);
 
 		// Adds the button to the panel
-		//buttonPanel.add(OKButton);
-		
 		buttonPanel.add(OKButton);
 		slidePanel.add(buttonPanel, BorderLayout.SOUTH);
 		add(slidePanel, BorderLayout.SOUTH);
 
-		// Adds the panel to the window
-		//add(buttonPanel);
-	}
-
-	/**
-	 * Creates the JFrame for the window and adds the content pane defined
-	 * in the default constructor to the JFrame. Also sets the location of
-	 * the window on the screen, sets the default button, and sets the
-	 * window to be visible.
-	 */
-	private static void setup()
-	{
-		// Creates the JFrame with the title of "New_Plugin Options"
-		frame = new JFrame("New_Plugin Options");
-		// Prevents the user from clicking the X on the window to close it
-		frame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-
-		// Frame cannot be resized
-		frame.setResizable(false);
-		// Creates a JComponent from the default constructor
-		JComponent contentPane = new OptionWindow();
-		// Makes the content pane non-transparent
-		contentPane.setOpaque(true);
-		// Sets the content pane of the frame to be the content pane created by the constructor
-		frame.setContentPane(contentPane);
+		// Makes the panel non-transparent
+		setOpaque(true);
+		// Sets the content pane of the frame to be this window
+		frame.setContentPane(this);
 		// Sets the default button for the frame to be the OK button
 		frame.getRootPane().setDefaultButton(OKButton);
-		// Packs all of the components into the frame to prepare to make it visible
-		frame.pack();
-		// Sets the location of the frame in the center of the screen
-		frame.setLocationRelativeTo(null);
-		// Pops the frame up
-		frame.setVisible(true);
 	}
 
 	/**
 	 * Handles item events generated by the checkbox objects.
+	 *
 	 * @param e The reference to the ItemEvent that the listener generates
 	 */
 	public void itemStateChanged(ItemEvent e)
@@ -273,7 +233,7 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 			}
 		}
 	}
-	
+
 	public void stateChanged(ChangeEvent e)
 	{
 		JSlider source = (JSlider)e.getSource();
@@ -298,9 +258,23 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 	}
 
 	/**
+	 * Packs the frame, sets the location of the window on the screen,
+	 * and sets the window to be visible.
+	 */
+	private void setup()
+	{
+		// Packs all of the components into the frame to prepare to make it visible
+		frame.pack();
+		// Sets the location of the frame in the center of the screen
+		frame.setLocationRelativeTo(null);
+		// Pops the frame up
+		frame.setVisible(true);
+	}
+
+	/**
 	 * Driver method for the class. Invokes the setup method to generate the window.
 	 */
-	public static void start()
+	public void start()
 	{
 		// Runs the setup method to generate the window.
 		javax.swing.SwingUtilities.invokeLater(new Runnable() {

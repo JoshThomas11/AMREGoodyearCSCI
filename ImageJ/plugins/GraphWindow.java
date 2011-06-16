@@ -1,5 +1,4 @@
 import java.awt.*;
-import java.util.*;
 import javax.swing.*;
 
 // Pt Plot Packages
@@ -27,29 +26,37 @@ import ptolemy.plot.Plot;
 class GraphWindow extends JPanel
 {
 	// Static global variables to conform to the initial constructor call and the second constructor call in setup
-	static JFrame frame;
-	static Vector<Double> Na;
-	static double[] Nv0;
-	static double[] Nv50;
-	static double[] Nv100;
-	static double max;
-	static int nBins;
+	JFrame frame;
+
+	/*
+	private double[] Na;
+	private double[] Nv0;
+	private double[] Nv50;
+	private double[] Nv100;
+	private double max;
+	private int nBins;
+	*/
 
 	// Plot object using ptplot
-	static Plot p;
+	private Plot p;
 
 	/**
-	 * First constructor for the class, which is called during the execution of run() in the New_Plugin class.
+	 * Constructor for the class.
 	 * This constructor takes in the pertinent data that has been grabbed and generated in the main class and stores
-	 * the data in global variables to be used when constructing the plot in the frame.
+	 * the data in global variables to be used when constructing the plot in the frame. It then constructs the panel
+	 * and plots the data.
 	 *
 	 * @param Na The 2-D particle distribution obtained in the New_Plugin class.
 	 * @param Nv0 The 3-D particle distribution obtained in the New_Plugin class, with a thickness of 0 pixels.
 	 * @param Nv50 The 3-D particle distribution obtained in the New_Plugin class, with a thickness of 50 pixels.
 	 * @param Nv100 The 3-D particle distribution obtained in the New_Plugin class, with a thickness of 100 pixels.
 	*/
-	public GraphWindow(Vector<Double> Na, double[] Nv0, double[] Nv50, double[] Nv100, double max, int nBins)
+	public GraphWindow(double[] Na, double[] Nv0, double[] Nv50, double[] Nv100, double max, int nBins)
 	{
+		// Gives the class's JPanel (since it extends that) a BorderLayout.
+		super(new BorderLayout());
+
+		/*
 		// Stores the input arguments into the class-local variables
 		this.Na = Na;
 		this.Nv0 = Nv0;
@@ -57,16 +64,10 @@ class GraphWindow extends JPanel
 		this.Nv100 = Nv100;
 		this.max = max;
 		this.nBins = nBins;
-	}
+		*/
 
-	/**
-	 * Second constructor for the class, called during the setup of the JFrame. This constructor
-	 * creates the Swing components and the Plot components. It places them in the JFrame.
-	*/
-	public GraphWindow()
-	{
-		// Gives the class's JPanel (since it extends that) a BorderLayout.
-		super(new BorderLayout());
+		// Creates the JFrame with the title of "Graph of 2-D CDF and 3-D CDF"
+		frame = new JFrame("Graph of 2-D CDF and 3-D CDF");
 
 		// Creates the JPanel to be placed in the BorderLayout - this JPanel has its components centered
 		JPanel graphPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -90,9 +91,10 @@ class GraphWindow extends JPanel
 		double csumA = 0, csumV0 = 0, csumV50 = 0, csumV100 = 0;
 
 		// Precomputes the total sums of Na, Nv0, Nv50, and Nv100
-		for (int i = 0; i < Na.size(); i++)
+		for (int i = 0; i < Na.length; i++)
 		{
-			tsumA += Na.elementAt(i);
+			//tsumA += Na.elementAt(i);
+			tsumA += Na[i];
 			tsumV0 += Nv0[i];
 			tsumV50 += Nv50[i];
 			tsumV100 += Nv100[i];
@@ -110,7 +112,7 @@ class GraphWindow extends JPanel
 		for (int i = 1; i <= nBins+1; i++)
 		{
 			// Computes cumulative sums
-			csumA += Na.elementAt(i-1);
+			csumA += Na[i-1];
 			csumV0 += Nv0[i-1];
 			csumV50 += Nv50[i-1];
 			csumV100 += Nv100[i-1];
@@ -144,22 +146,11 @@ class GraphWindow extends JPanel
 	}
 
 	/**
-	 * Creates the JFrame for the window and adds the content pane defined
-	 * in the default constructor to the JFrame. Also sets the location of
-	 * the window on the screen, sets the default button, and sets the
-	 * window to be visible.
+	 * Packs the frame, sets the location of the window on the screen,
+	 * and sets the window to be visible.
 	 */
-	private static void setup()
+	private void setup()
 	{
-		// Creates the JFrame with the title of "Graph of 2-D CDF and 3-D CDF"
-		frame = new JFrame("Graph of 2-D CDF and 3-D CDF");
-
-		// Creates a JComponent from the secondary constructor
-		JComponent contentPane = new GraphWindow();
-		// Makes the content pane non-transparent
-		contentPane.setOpaque(true);
-		// Sets the content pane of the frame to be the content pane created by the constructor
-		frame.setContentPane(contentPane);
 		// Packs all of the components into the frame to prepare to make it visible
 		frame.pack();
 		// Sets the location of the frame in the center of the screen
@@ -171,13 +162,13 @@ class GraphWindow extends JPanel
 	/**
 	 * Driver method for the class. Invokes the setup method to generate the window.
 	 */
-	public static void start()
+	public void start()
 	{
 		// Runs the setup method to generate the window.
 		javax.swing.SwingUtilities.invokeLater(new Runnable() {
-											   public void run() {
-											   setup();
-											   }
-											   });
+			public void run() {
+			   setup();
+			}
+		});
 	}
 }

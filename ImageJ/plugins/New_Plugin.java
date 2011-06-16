@@ -32,7 +32,6 @@ import ij.measure.ResultsTable;
 
 // Java Packages
 import java.awt.*;
-import java.util.*;
 
 
 /*
@@ -71,7 +70,6 @@ public class New_Plugin implements PlugInFilter
 	ImageProcessor ip;
 	ImagePlus impCopy;
 	ImageProcessor ipCopy;
-	//Roi roiCopy;
 
 	public int setup(String arg, ImagePlus inIMP)
 	{
@@ -99,7 +97,7 @@ public class New_Plugin implements PlugInFilter
 	 * Gathers a variety of statistics about the passed in data and puts those in pars[].
 	 * Taken from ImageJ's Distribution class.
 	 */
-	void stats(int nc, float [] data, float [] pars)
+	void stats(int nc, double[] data, float[] pars)
 	{
 		float s = 0, min = Float.MAX_VALUE, max = -Float.MAX_VALUE, totl=0, ave=0, adev=0, sdev=0, var=0, skew=0, kurt=0, p;
 
@@ -108,11 +106,11 @@ public class New_Plugin implements PlugInFilter
 			totl += data[i];
 			if (data[i] < min)
 			{
-				min = data[i];
+				min = (float)data[i];
 			}
 			if (data[i] > max)
 			{
-				max = data[i];
+				max = (float)data[i];
 			}
 		}
 
@@ -120,7 +118,7 @@ public class New_Plugin implements PlugInFilter
 
 		for (int i = 0; i < nc; i++)
 		{
-			s = data[i] - ave;
+			s = (float)(data[i] - ave);
 			adev += Math.abs(s);
 			p = s * s;
 			var += p;
@@ -166,7 +164,7 @@ public class New_Plugin implements PlugInFilter
 	/**
 	 * Automatically crops the image.
 	 * This can be toggled on and off in run() via a boolean variable in OptionWindow.
-	 * 
+	 *
 	 * @return A copy of the region of interest that was cropped.
 	 */
 	private Roi autoCrop()
@@ -193,20 +191,24 @@ public class New_Plugin implements PlugInFilter
 			iter++;
 		}
 
+		/*
 		System.out.println(iter);
 		System.out.println("wandX = " + curX);
 		System.out.println("wandY = " + curY);
+		*/
 
 		// Use the VersatileWand in the white point and then crop the image.
-		new VersatileWand().mousePressed(Integer.toString(curX), Integer.toString(curY));
-		
+		//new VersatileWand().mousePressed(Integer.toString(curX), Integer.toString(curY));
+		VersatileWand.mousePressed(Integer.toString(curX), Integer.toString(curY));
+
+		// Make a copy of the region of interest to return
 		Roi tmpROI = (Roi)imp.getRoi().clone();
-				
+
 		IJ.run("Crop");
-		
+
 		return tmpROI;
 	}
-	
+
 	public static ImagePlus copyCrop(ImageProcessor inIP, Roi inROI)
 	{
 		ImageProcessor tempIP = inIP;
@@ -257,9 +259,9 @@ public class New_Plugin implements PlugInFilter
 	 * @param data An array containing the diameters of all of the particles.
 	 * @param rt A ResultsTable object, used to compute data for the array, pars.
 	 *
-	 * @return Returns the optimal number of bins for the image.
+	 * @return Returns the optimal bin width.
 	*/
-	private float sizeBins(float[] data, ResultsTable rt)
+	float sizeBins(double[] data, ResultsTable rt)
 	{
 		float [] pars = new float [11];
 		// Calls the stats function to compute pars
@@ -279,9 +281,9 @@ public class New_Plugin implements PlugInFilter
 	 * @param data An array containing the diameters of all of the particles.
 	 * @param rt A ResultsTable object, used to compute data for the array, pars.
 	 *
-	 * @return Returns the number of bins.
+	 * @return Returns the optimal number of bins for the image.
 	*/
-	private int numBins(float[] data, ResultsTable rt)
+	int numBins(double[] data, ResultsTable rt)
 	{
 		float [] pars = new float [11];
 		// Calls the stats function to compute pars
@@ -346,7 +348,7 @@ public class New_Plugin implements PlugInFilter
 		// Checks if the user specified that the image needs to be cropped
 		if (ow.cropCheck)
 		{
-			impCopy = copyCrop(ipCopy, autoCrop());	
+			impCopy = copyCrop(ipCopy, autoCrop());
 		}
 		// Checks if the user specified that the image needs to be despeckled
 		if (ow.despeckleCheck)
@@ -371,35 +373,43 @@ public class New_Plugin implements PlugInFilter
 		// Get results
 		ResultsTable rt = ResultsTable.getResultsTable();
 
-		// Creates a vector to store the diameters that ImageJ computes for each particle
-		Vector<Double> imageData = new Vector();
-		// Creates an array of the same diameters for bin computations
-		float[] data = new float[rt.getCounter()];
+		// Creates an array to store the diameters that ImageJ computes for each particle
+		//float[] data = new float[rt.getCounter()];
+		double[] data = new double[rt.getCounter()];
 		for (int i = 0; i < rt.getCounter(); i++)
 		{
-			// Stores the diameters of each recognized particle into the Vector
-			imageData.add(2*Math.sqrt(rt.getValue("Area", i) / Math.PI));
+			// Stores the diameters of each recognized particle into the array
 			data[i] = (float)(2*Math.sqrt(rt.getValue("Area", i) / Math.PI));
+
+			System.out.println("data[" + i + "] = " + data[i]);
 		}
-		
-		System.out.println("num particles = " + imageData.size());
+
+		System.out.println("num particles = " + data.length);
+
+
+		double max = Alg.arrayMax(data);
+
 
 		float binWidth = sizeBins(data, rt);
-		System.out.println("binWidth = " + binWidth);
 		int nBins = numBins(data, rt);
+
+
+		binWidth = (float)(max/(nBins+1));
+		System.out.println("nBins = " + nBins);
+		System.out.println("binWidth = " + binWidth);
+
 
 		//nBins = 5;
 		//System.out.println("nBins = " + nBins);
 
+		System.out.println("Area = " + imp.getWidth() * imp.getHeight());
+
 		// Computes Nv for thickness = 0 pixels
-		//double[] results = Alg.SSAlg(imageData, nBins, 0, imp.getWidth() * imp.getHeight());
-		double[] results = Alg.SSAlg(imageData, nBins, binWidth, 0, imp.getWidth() * imp.getHeight());
+		double[] results = Alg.SSAlg(data, nBins, binWidth, 0, imp.getWidth() * imp.getHeight());
 		// Computes Nv for thickness = 50 pixels
-		//double[] results2 = Alg.SSAlg(imageData, nBins, 50, imp.getWidth() * imp.getHeight());
-		double[] results2 = Alg.SSAlg(imageData, nBins, binWidth, 50, imp.getWidth() * imp.getHeight());
+		double[] results2 = Alg.SSAlg(data, nBins, binWidth, 50, imp.getWidth() * imp.getHeight());
 		// Computes Nv for thickness = 100 pixels
-		//double[] results3 = Alg.SSAlg(imageData, nBins, 100, imp.getWidth() * imp.getHeight());
-		double[] results3 = Alg.SSAlg(imageData, nBins, binWidth, 100, imp.getWidth() * imp.getHeight());
+		double[] results3 = Alg.SSAlg(data, nBins, binWidth, 100, imp.getWidth() * imp.getHeight());
 
 		// If the user did NOT select to include negatives, then replace these negative values with 0
 		if (!ow.includeNegatives)
@@ -424,18 +434,10 @@ public class New_Plugin implements PlugInFilter
 		//new HistogramWindow("Distribution", imp, stats);
 
 		// Grabs the maximum diameter from the data set of diameters
-		double max = Collections.max(imageData);
+		//double max = Alg.arrayMax(data);
 		// Creates and launches the Graph Window, which plots Na and each of the computed Nv sets
 		GraphWindow gw = new GraphWindow(Alg.Na, results, results2, results3, max, nBins);
 		gw.start();
-
-
-		float[] volData = new float[data.length];
-		for (int i = 0; i < data.length; i++)
-		{
-			volData[i] = (float)((4.0/3.0)*Math.PI*Math.pow(data[i] / 2, 3));
-		}
-		float volBinWidth = sizeBins(volData, rt);
 
 		// original histogram
 		/*
@@ -537,24 +539,24 @@ public class New_Plugin implements PlugInFilter
 			centroids[i][0] = rt.getValue("XM", i);
 			centroids[i][1] = rt.getValue("YM", i);
 		}
-		
+
 		WindowManager.setCurrentWindow(new ImageWindow(impCopy));
-		
+
+		/*
 		for (int i = 0; i < centroids.length; i++)
 		{
-			/*
 			System.out.print("(" + (int)centroids[i][0] + ", " + (int)centroids[i][1] + "): " + impCopy.getPixel((int)centroids[i][0], (int)centroids[i][1])[0] + " "); // R
 			System.out.print(impCopy.getPixel((int)centroids[i][0], (int)centroids[i][1])[1] + " "); // G
 			System.out.print(impCopy.getPixel((int)centroids[i][0], (int)centroids[i][1])[2] + " "); // B
 			System.out.print(impCopy.getPixel((int)centroids[i][0], (int)centroids[i][1])[3]); // a
 			System.out.println();
-			*/
 		}
+		*/
 
-		// Creates the 3-D view for the particles
-		// Passes in the image width, image height, maximum diameter, and number of particles
 		if (ow.percentParticles > 0)
 		{
+			// Creates the 3-D view for the particles
+			// Passes in the image width, image height, maximum diameter, and number of particles
 			ParticleBox pb = new ParticleBox(imp.getWidth(), imp.getHeight(), max, rt.getCounter(), centroids, ow.percentParticles);
 			pb.run();
 
