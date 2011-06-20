@@ -190,23 +190,6 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 		// For all particles in the image, creates random locations
 		for (int q = 0; q < numParts; q++)
 		{
-			/*
-			// x-location, scaled for size of image
-			locations[q][0] = (float) RNG.nextDouble() * (imageW / 2);
-			// Randomly determines if x-location should be positive or negative
-			if (RNG.nextBoolean())
-			{
-				locations[q][0] *= -1;
-			}
-			// y-location, scaled for size of image
-			locations[q][1] = (float) RNG.nextDouble() * (imageH / 2);
-			// Randomly determines if y-location should be positive or negative
-			if (RNG.nextBoolean())
-			{
-				locations[q][1] *= -1;
-			}
-			*/
-
 			// z-location, scaled based on maximum diameter of particles
 			locations[q] = (float) RNG.nextDouble() * (imageD/2);
 			// Randomly determines if z-location should be positive or negative
@@ -217,6 +200,10 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 		}
 	}
 
+	/**
+	 * Decides (via Random) which particles should be drawn if the user
+	 * specified that only a certain percentage should be in the rendering.
+	 */
 	public void particleStorage()
 	{
 		Random RNG = new Random();

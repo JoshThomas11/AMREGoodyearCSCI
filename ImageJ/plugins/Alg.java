@@ -10,8 +10,16 @@
  * @author Josh Thomas
  * @version 0.2, 05/25/11
  */
-class Alg
+final class Alg
 {
+	/**
+	 * This empty constructor is private in order to make the class noninstantiable (static).
+	 */
+	private Alg()
+	{
+		throw new AssertionError("This constructor should not be called because this is a static class.");
+	}
+
 	/**
 	 * Finds the maximum value in an array of doubles.
 	 *
@@ -51,26 +59,46 @@ class Alg
 		}
 		return min;
 	}
-	
-	public static double getAlpha(double[][] NaNv, double binWidth, int parts, int index)
+
+	/**
+	 * Finds the Alpha value for the given data.
+	 *
+	 * @param NaNv The combined NaNv for the data
+	 * @param delta The width of each bin (binWidth)
+	 * @param parts The number of particles
+	 * @param index The index specifying which element of NaNv[i] to access
+	 *
+	 * @return The alpha value
+	 */
+	public static double getAlpha(double[][] NaNv, double delta, int parts, int index)
 	{
 		double top = 0;
 		double bottom = 0;
-		
+
 		for (int i = 0; i < NaNv.length; i++)
 		{
-			top += (NaNv[i][index] / parts) * (i + 0.5) * binWidth;
-			bottom += (NaNv[i][0] / parts) * (i + 0.5) * binWidth;
+			top += (NaNv[i][index] / parts) * (i + 0.5) * delta;
+			bottom += (NaNv[i][0] / parts) * (i + 0.5) * delta;
 		}
-		
-		return top / bottom;		
+
+		return top / bottom;
 	}
-	
+
+	/**
+	 * Finds Na for the given data.
+	 *
+	 * @param data Input data from ImageJ, consisting of the diameters of each particle in pixels
+	 * @param nBins The number of bins
+	 * @param delta The width of each bin (binWidth)
+	 * @param area The area of the (cropped) image
+	 *
+	 * @return Na
+	 */
 	public static double[] getNa(double[] data, int nBins, double delta, double area)
 	{
 		// Constructs Na, the 2-D particle distribution
 		double[] Na = new double[nBins+1];
-		
+
 		// "counter" variable used to determine the values in Na
 		int sum = 0;
 
@@ -89,8 +117,8 @@ class Alg
 			Na[i] = sum/area;
 			sum = 0;
 		}
-		
-		
+
+
 		// debug printing begins here
 
 		System.out.println();
@@ -103,10 +131,10 @@ class Alg
 		System.out.println("naSum = " + naSum);
 		System.out.println("particles/area = " + (data.length/area));
 		System.out.println();
-		
+
 		return Na;
 	}
-		
+
 
 	/**
 	 * The main function of the class. Computes the Schwartz-Saltikov algorithm from
@@ -115,7 +143,7 @@ class Alg
 	 * @param data Input data from ImageJ, consisting of the diameters of each particle in pixels
 	 * @param nBins The number of bins computed by ImageJ that the particles are placed into
 	 * @param thick The thickness of the slice/cross-section in pixels
-	 * @param area The area of the image, computed by multiplying the cropped image's width and height
+	 * @param area The area of the (cropped) image
 	 *
 	 * @return Nv The 3-D particle distribution, stored as an array of doubles
 	*/
@@ -127,7 +155,7 @@ class Alg
 
 		System.out.println("max = " + max);
 		System.out.println("min = " + min);
-		
+
 		// Constructs the transition matrix, A (note that A is an upper-triangular matrix)
 		double[][] A = new double[nBins+1][nBins+1];
 
@@ -158,7 +186,7 @@ class Alg
 				System.out.println("A: " + A[i][j]);
 			}
 		}
-		
+
 		double[] Na = getNa(data, nBins, delta, area);
 
 		// Constructs Nv, the 3-D distribution of the particles

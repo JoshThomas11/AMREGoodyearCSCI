@@ -394,12 +394,12 @@ public class New_Plugin implements PlugInFilter
 
 		double binWidth = sizeBins(data, rt);
 		int nBins = numBins(data, rt);
-		
+
 		binWidth = (float)(max/(nBins+1));
 		System.out.println("nBins = " + nBins);
 		System.out.println("binWidth = " + binWidth);
-		
-		
+
+
 		double[] Na = Alg.getNa(data, nBins, binWidth, imp.getWidth() * imp.getHeight());
 
 
@@ -431,7 +431,7 @@ public class New_Plugin implements PlugInFilter
 				}
 			}
 		}
-		
+
 		double[][] combinedNaNv = new double[nBins+1][4];
 		double area = imp.getWidth() * imp.getHeight();
 		double sumNa = 0, sumNv0 = 0, sumNv50 = 0, sumNv100 = 0;
@@ -449,7 +449,7 @@ public class New_Plugin implements PlugInFilter
 			combinedNaNv[i][2] = results2[i]*area*(sumNa/sumNv50);
 			combinedNaNv[i][3] = results3[i]*area*(sumNa/sumNv100);
 		}
-		
+
 		double alpha0 = Alg.getAlpha(combinedNaNv, binWidth, rt.getCounter(), 1);
 		double alpha1 = Alg.getAlpha(combinedNaNv, binWidth, rt.getCounter(), 2);
 		double alpha2 = Alg.getAlpha(combinedNaNv, binWidth, rt.getCounter(), 3);

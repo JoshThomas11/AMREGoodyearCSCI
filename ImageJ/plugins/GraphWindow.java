@@ -30,7 +30,7 @@ class GraphWindow extends JPanel
 
 	// Plot object using ptplot
 	private Plot p;
-	
+
 	// Counter variable to keep track of the datasets, based on which thicknesses are to be displayed
 	private int idxCount = 1;
 
@@ -150,7 +150,7 @@ class GraphWindow extends JPanel
 
 		// Adds the JPanel to the BorderLayout
 		add(graphPanel, BorderLayout.CENTER);
-		
+
 		// Makes the panel non-transparent
 		setOpaque(true);
 		// Sets the content pane of the frame to be this window

@@ -40,7 +40,7 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 	{
 		// Applies a 4 row by 1 column grid layout to the window
 		super(new BorderLayout());
-		
+
 		thicknessCheck = new boolean[3];
 
 		// Creates the JFrame with the title of "New_Plugin Options"
@@ -110,12 +110,12 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 		thick0Box.setSelected(false);
 		thick50Box.setSelected(false);
 		thick100Box.setSelected(false);
-		
+
 		// Renders the thickness checkboxes to be disabled until the user has selected
 		// that they want to display either the PDFs, the CDFs, or both
-		thick0Box.setEnabled(false);
-		thick50Box.setEnabled(false);
-		thick100Box.setEnabled(false);
+		//thick0Box.setEnabled(false);
+		//thick50Box.setEnabled(false);
+		//thick100Box.setEnabled(false);
 
 		// Adds an item listener to all checkboxes
 		invertBox.addItemListener(this);
@@ -237,23 +237,23 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 		else if (PDFBox == box)
 		{
 			PDFCheck = true;
-			thick0Box.setEnabled(true);
-			thick50Box.setEnabled(true);
-			thick100Box.setEnabled(true);
+			//thick0Box.setEnabled(true);
+			//thick50Box.setEnabled(true);
+			//thick100Box.setEnabled(true);
 		}
 		else if (PDFBox2 == box)
 		{
 			PDFCheck2 = true;
-			thick0Box.setEnabled(true);
-			thick50Box.setEnabled(true);
-			thick100Box.setEnabled(true);
+			//thick0Box.setEnabled(true);
+			//thick50Box.setEnabled(true);
+			//thick100Box.setEnabled(true);
 		}
 		else if (CDFBox == box)
 		{
 			CDFCheck = true;
-			thick0Box.setEnabled(true);
-			thick50Box.setEnabled(true);
-			thick100Box.setEnabled(true);
+			//thick0Box.setEnabled(true);
+			//thick50Box.setEnabled(true);
+			//thick100Box.setEnabled(true);
 		}
 		else if (thick0Box == box)
 		{
@@ -306,6 +306,7 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 			else if (PDFBox == box)
 			{
 				PDFCheck = false;
+				/*
 				if (!CDFCheck && !PDFCheck2)
 				{
 					thick0Box.setSelected(false);
@@ -318,10 +319,12 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 					thick100Box.setEnabled(false);
 					thicknessCheck[2] = false;
 				}
+				*/
 			}
 			else if (PDFBox2 == box)
 			{
 				PDFCheck2 = false;
+				/*
 				if (!CDFCheck && !PDFCheck)
 				{
 					thick0Box.setSelected(false);
@@ -334,10 +337,12 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 					thick100Box.setEnabled(false);
 					thicknessCheck[2] = false;
 				}
+				*/
 			}
 			else if (CDFBox == box)
 			{
 				CDFCheck = false;
+				/*
 				if (!PDFCheck && !PDFCheck2)
 				{
 					thick0Box.setSelected(false);
@@ -350,6 +355,7 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 					thick100Box.setEnabled(false);
 					thicknessCheck[2] = false;
 				}
+				*/
 			}
 			else if (thick0Box == box)
 			{
