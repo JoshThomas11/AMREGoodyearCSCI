@@ -21,24 +21,18 @@ import ptolemy.plot.Plot;
  *
  * @author Benn Snyder
  * @author Josh Thomas
- * @version 0.2, 05/31/11
+ * @version 0.2.1, 06/17/11
  */
 class GraphWindow extends JPanel
 {
 	// Static global variables to conform to the initial constructor call and the second constructor call in setup
-	JFrame frame;
-
-	/*
-	private double[] Na;
-	private double[] Nv0;
-	private double[] Nv50;
-	private double[] Nv100;
-	private double max;
-	private int nBins;
-	*/
+	private JFrame frame;
 
 	// Plot object using ptplot
 	private Plot p;
+	
+	// Counter variable to keep track of the datasets, based on which thicknesses are to be displayed
+	private int idxCount = 1;
 
 	/**
 	 * Constructor for the class.
@@ -50,21 +44,12 @@ class GraphWindow extends JPanel
 	 * @param Nv0 The 3-D particle distribution obtained in the New_Plugin class, with a thickness of 0 pixels.
 	 * @param Nv50 The 3-D particle distribution obtained in the New_Plugin class, with a thickness of 50 pixels.
 	 * @param Nv100 The 3-D particle distribution obtained in the New_Plugin class, with a thickness of 100 pixels.
+	 * @param flags Boolean array that specifies which thicknesses in 3-D to plot.
 	*/
-	public GraphWindow(double[] Na, double[] Nv0, double[] Nv50, double[] Nv100, double max, int nBins)
+	public GraphWindow(double[] Na, double[] Nv0, double[] Nv50, double[] Nv100, double max, int nBins, boolean[] flags)
 	{
 		// Gives the class's JPanel (since it extends that) a BorderLayout.
 		super(new BorderLayout());
-
-		/*
-		// Stores the input arguments into the class-local variables
-		this.Na = Na;
-		this.Nv0 = Nv0;
-		this.Nv50 = Nv50;
-		this.Nv100 = Nv100;
-		this.max = max;
-		this.nBins = nBins;
-		*/
 
 		// Creates the JFrame with the title of "Graph of 2-D CDF and 3-D CDF"
 		frame = new JFrame("Graph of 2-D CDF and 3-D CDF");
@@ -93,7 +78,6 @@ class GraphWindow extends JPanel
 		// Precomputes the total sums of Na, Nv0, Nv50, and Nv100
 		for (int i = 0; i < Na.length; i++)
 		{
-			//tsumA += Na.elementAt(i);
 			tsumA += Na[i];
 			tsumV0 += Nv0[i];
 			tsumV50 += Nv50[i];
@@ -121,9 +105,21 @@ class GraphWindow extends JPanel
 			// x-axis is particle diameter
 			// y-axis is cumulative percent of number of particles whose diameter is less than or equal to the given diameter
 			p.addPoint(0, i*(max/(nBins+1)), (csumA/tsumA)*100, connected);
-			p.addPoint(1, i*(max/(nBins+1)), (csumV0/tsumV0)*100, connected);
-			p.addPoint(2, i*(max/(nBins+1)), (csumV50/tsumV50)*100, connected);
-			p.addPoint(3, i*(max/(nBins+1)), (csumV100/tsumV100)*100, connected);
+			if(flags[0])
+			{
+				p.addPoint(idxCount, i*(max/(nBins+1)), (csumV0/tsumV0)*100, connected);
+				idxCount++;
+			}
+			if(flags[1])
+			{
+				p.addPoint(idxCount, i*(max/(nBins+1)), (csumV50/tsumV50)*100, connected);
+				idxCount++;
+			}
+			if(flags[2])
+			{
+				p.addPoint(idxCount, i*(max/(nBins+1)), (csumV100/tsumV100)*100, connected);
+			}
+			idxCount = 1;
 
 			// Connects points after the first iteration of the loop
 			connected = true;
@@ -134,15 +130,31 @@ class GraphWindow extends JPanel
 
 		// Adds the legend for the data sets
 		p.addLegend(0, "2-D Distribution");
-		p.addLegend(1, "H = 0 px");
-		p.addLegend(2, "H = 50 px");
-		p.addLegend(3, "H = 100 px");
+		if(flags[0])
+		{
+			p.addLegend(idxCount, "H = 0 px");
+			idxCount++;
+		}
+		if(flags[1])
+		{
+			p.addLegend(idxCount, "H = 50 px");
+			idxCount++;
+		}
+		if(flags[2])
+		{
+			p.addLegend(idxCount, "H = 100 px");
+		}
 
 		// Adds the Plot object to the JPanel
 		graphPanel.add(p);
 
 		// Adds the JPanel to the BorderLayout
 		add(graphPanel, BorderLayout.CENTER);
+		
+		// Makes the panel non-transparent
+		setOpaque(true);
+		// Sets the content pane of the frame to be this window
+		frame.setContentPane(this);
 	}
 
 	/**

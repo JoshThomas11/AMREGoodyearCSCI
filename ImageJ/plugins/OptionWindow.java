@@ -15,19 +15,20 @@ import javax.swing.event.*;
  *
  * @author Benn Snyder
  * @author Josh Thomas
- * @version 0.2, 06/02/11
+ * @version 0.2.5, 06/17/11
  */
 class OptionWindow extends JPanel implements ActionListener, ItemListener, ChangeListener
 {
 	// Boolean variables for each checkbox
-	public boolean invertCheck, cropCheck, includeNegatives, despeckleCheck, watershedCheck, thresholdCheck, grayscaleCheck, removeScaleCheck;
+	public boolean invertCheck, cropCheck, includeNegatives, despeckleCheck, watershedCheck, thresholdCheck, grayscaleCheck, removeScaleCheck, PDFCheck, PDFCheck2, CDFCheck;
+	public boolean[] thicknessCheck;
 	// Keeps track of if the window has been closed
 	public boolean finished;
 	public int percentParticles = 100;
 
 	// Swing objects
 	// Checkboxes for each property
-	JCheckBox invertBox, cropBox, negativesBox, despeckleBox, watershedBox, thresholdBox, grayscaleBox, removeScaleBox;
+	JCheckBox invertBox, cropBox, negativesBox, despeckleBox, watershedBox, thresholdBox, grayscaleBox, removeScaleBox, PDFBox, PDFBox2, CDFBox, thick0Box, thick50Box, thick100Box;
 	protected JButton OKButton; // OK Button
 	private JFrame frame; // Main JFrame for the window
 
@@ -39,6 +40,8 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 	{
 		// Applies a 4 row by 1 column grid layout to the window
 		super(new BorderLayout());
+		
+		thicknessCheck = new boolean[3];
 
 		// Creates the JFrame with the title of "New_Plugin Options"
 		frame = new JFrame("New_Plugin Options");
@@ -58,7 +61,7 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 
 		// Second panel of components in the window (left-aligned)
 		//JPanel checkBoxPanel = new JPanel(new FlowLayout());
-		JPanel checkBoxPanel = new JPanel(new GridLayout(3, 3));
+		JPanel checkBoxPanel = new JPanel(new GridLayout(5, 3));
 
 		// Creates the checkboxes for the options
 		invertBox = new JCheckBox("Invert LUT");
@@ -69,6 +72,12 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 		thresholdBox = new JCheckBox("Binarize Image");
 		grayscaleBox = new JCheckBox("Convert to Grayscale");
 		removeScaleBox = new JCheckBox("Remove Scale");
+		PDFBox = new JCheckBox("Display PDFs (Total)");
+		PDFBox2 = new JCheckBox("Display PDFs (Fractional)");
+		CDFBox = new JCheckBox("Display CDFs");
+		thick0Box = new JCheckBox("Display H=0");
+		thick50Box = new JCheckBox("Display H=50");
+		thick100Box = new JCheckBox("Display H=100");
 
 		// Sets the Key Event for the checkboxes
 		invertBox.setMnemonic(KeyEvent.VK_I);
@@ -79,6 +88,12 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 		thresholdBox.setMnemonic(KeyEvent.VK_T);
 		grayscaleBox.setMnemonic(KeyEvent.VK_G);
 		removeScaleBox.setMnemonic(KeyEvent.VK_S);
+		PDFBox.setMnemonic(KeyEvent.VK_P);
+		PDFBox2.setMnemonic(KeyEvent.VK_F);
+		CDFBox.setMnemonic(KeyEvent.VK_U);
+		thick0Box.setMnemonic(KeyEvent.VK_H);
+		thick50Box.setMnemonic(KeyEvent.VK_J);
+		thick100Box.setMnemonic(KeyEvent.VK_K);
 
 		// Sets the initial state of the checkboxes to be unchecked
 		invertBox.setSelected(false);
@@ -89,6 +104,18 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 		thresholdBox.setSelected(false);
 		grayscaleBox.setSelected(false);
 		removeScaleBox.setSelected(false);
+		PDFBox.setSelected(false);
+		PDFBox2.setSelected(false);
+		CDFBox.setSelected(false);
+		thick0Box.setSelected(false);
+		thick50Box.setSelected(false);
+		thick100Box.setSelected(false);
+		
+		// Renders the thickness checkboxes to be disabled until the user has selected
+		// that they want to display either the PDFs, the CDFs, or both
+		thick0Box.setEnabled(false);
+		thick50Box.setEnabled(false);
+		thick100Box.setEnabled(false);
 
 		// Adds an item listener to all checkboxes
 		invertBox.addItemListener(this);
@@ -99,6 +126,12 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 		thresholdBox.addItemListener(this);
 		grayscaleBox.addItemListener(this);
 		removeScaleBox.addItemListener(this);
+		PDFBox.addItemListener(this);
+		PDFBox2.addItemListener(this);
+		CDFBox.addItemListener(this);
+		thick0Box.addItemListener(this);
+		thick50Box.addItemListener(this);
+		thick100Box.addItemListener(this);
 
 		// Adds all checkboxes to the panel
 		checkBoxPanel.add(grayscaleBox);
@@ -109,6 +142,12 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 		checkBoxPanel.add(despeckleBox);
 		checkBoxPanel.add(watershedBox);
 		checkBoxPanel.add(negativesBox);
+		checkBoxPanel.add(PDFBox);
+		checkBoxPanel.add(PDFBox2);
+		checkBoxPanel.add(CDFBox);
+		checkBoxPanel.add(thick0Box);
+		checkBoxPanel.add(thick50Box);
+		checkBoxPanel.add(thick100Box);
 
 		// Adds the panel to the window
 		add(checkBoxPanel, BorderLayout.CENTER);
@@ -195,6 +234,39 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 		{
 			removeScaleCheck = true;
 		}
+		else if (PDFBox == box)
+		{
+			PDFCheck = true;
+			thick0Box.setEnabled(true);
+			thick50Box.setEnabled(true);
+			thick100Box.setEnabled(true);
+		}
+		else if (PDFBox2 == box)
+		{
+			PDFCheck2 = true;
+			thick0Box.setEnabled(true);
+			thick50Box.setEnabled(true);
+			thick100Box.setEnabled(true);
+		}
+		else if (CDFBox == box)
+		{
+			CDFCheck = true;
+			thick0Box.setEnabled(true);
+			thick50Box.setEnabled(true);
+			thick100Box.setEnabled(true);
+		}
+		else if (thick0Box == box)
+		{
+			thicknessCheck[0] = true;
+		}
+		else if (thick50Box == box)
+		{
+			thicknessCheck[1] = true;
+		}
+		else if (thick100Box == box)
+		{
+			thicknessCheck[2] = true;
+		}
 
 		// If, in fact, the checkbox was deselected, then set the value to false
 		if(e.getStateChange() == ItemEvent.DESELECTED)
@@ -230,6 +302,66 @@ class OptionWindow extends JPanel implements ActionListener, ItemListener, Chang
 			else if (removeScaleBox == box)
 			{
 				removeScaleCheck = false;
+			}
+			else if (PDFBox == box)
+			{
+				PDFCheck = false;
+				if (!CDFCheck && !PDFCheck2)
+				{
+					thick0Box.setSelected(false);
+					thick0Box.setEnabled(false);
+					thicknessCheck[0] = false;
+					thick50Box.setSelected(false);
+					thick50Box.setEnabled(false);
+					thicknessCheck[1] = false;
+					thick100Box.setSelected(false);
+					thick100Box.setEnabled(false);
+					thicknessCheck[2] = false;
+				}
+			}
+			else if (PDFBox2 == box)
+			{
+				PDFCheck2 = false;
+				if (!CDFCheck && !PDFCheck)
+				{
+					thick0Box.setSelected(false);
+					thick0Box.setEnabled(false);
+					thicknessCheck[0] = false;
+					thick50Box.setSelected(false);
+					thick50Box.setEnabled(false);
+					thicknessCheck[1] = false;
+					thick100Box.setSelected(false);
+					thick100Box.setEnabled(false);
+					thicknessCheck[2] = false;
+				}
+			}
+			else if (CDFBox == box)
+			{
+				CDFCheck = false;
+				if (!PDFCheck && !PDFCheck2)
+				{
+					thick0Box.setSelected(false);
+					thick0Box.setEnabled(false);
+					thicknessCheck[0] = false;
+					thick50Box.setSelected(false);
+					thick50Box.setEnabled(false);
+					thicknessCheck[1] = false;
+					thick100Box.setSelected(false);
+					thick100Box.setEnabled(false);
+					thicknessCheck[2] = false;
+				}
+			}
+			else if (thick0Box == box)
+			{
+				thicknessCheck[0] = false;
+			}
+			else if (thick50Box == box)
+			{
+				thicknessCheck[1] = false;
+			}
+			else if (thick100Box == box)
+			{
+				thicknessCheck[2] = false;
 			}
 		}
 	}

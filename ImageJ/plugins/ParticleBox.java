@@ -51,9 +51,10 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 	double[][] centroids;
 
 	// Variables to be passed in to the constructor
-	int imageW = 0, imageH = 0;
-	float maxDiam = 0;
+	int imageW = 0, imageH = 0, imageD = 0;
+	double[] diams;
 	int numParts = 0;
+	double grow = 1;
 
 	// Lighting Variables
 
@@ -84,7 +85,7 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 	 * @param particles The number of particles counted in the image.
 	 * @param percentParticles The percent of particles to display.
 	 */
-	public ParticleBox(int w, int h, double diam, int particles, double[][] centers, int percentParticles)
+	public ParticleBox(int w, int h, double[] data, int particles, double[][] centers, int z, double alpha, int percentParticles)
 	{
 		// Sets the title for the JFrame
 		super("3-D Particle Visualization");
@@ -98,8 +99,10 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 		// Assigns the passed-in data to the class variables
 		imageW = w;
 		imageH = h;
-		maxDiam = (float)diam;
+		diams = data;
 		numParts = particles;
+		grow = alpha;
+		imageD = z;
 		percentParts = percentParticles;
 
 		// Initializes the GLCapabilities object and specifies that we want double buffering
@@ -205,7 +208,7 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 			*/
 
 			// z-location, scaled based on maximum diameter of particles
-			locations[q] = (float) RNG.nextDouble() * maxDiam;
+			locations[q] = (float) RNG.nextDouble() * (imageD/2);
 			// Randomly determines if z-location should be positive or negative
 			if (RNG.nextBoolean())
 			{
@@ -285,14 +288,14 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 			for(int q = 0; q < numParts; q++)
 			{
 				// Draws the particles, given the stored locations and the maximum diameter in the image
-				drawParticles(drawable, centroids[q][0], centroids[q][1], locations[q], maxDiam);
+				drawParticles(drawable, centroids[q][0], centroids[q][1], locations[q], diams[q]);
 			}
 		}
 		else
 		{
 			for (int q = 0; q < chosenParts.length; q++)
 			{
-				drawParticles(drawable, centroids[chosenParts[q]][0], centroids[chosenParts[q]][1], locations[chosenParts[q]], maxDiam);
+				drawParticles(drawable, centroids[chosenParts[q]][0], centroids[chosenParts[q]][1], locations[chosenParts[q]], diams[chosenParts[q]]);
 			}
 		}
 
@@ -324,11 +327,10 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 		gl.glColor3f(0.33f, 0.33f, 0.33f); // Sets the color for the lines
 		// Four vertices making up the first side, based on image dimensions
 		// and max particle diameter
-		//gl.glVertex3f((float)(-imageW / 2), (float)(-imageH / 2), 2*maxDiam);
-		gl.glVertex3f((-imageW / 2), (-imageH / 2), 2*maxDiam);
-		gl.glVertex3f((-imageW / 2), (imageH / 2), 2*maxDiam);
-		gl.glVertex3f((-imageW / 2), (imageH / 2), -2*maxDiam);
-		gl.glVertex3f((-imageW / 2), (-imageH / 2), -2*maxDiam);
+		gl.glVertex3f((-imageW / 2), (-imageH / 2), imageD/2);
+		gl.glVertex3f((-imageW / 2), (imageH / 2), imageD/2);
+		gl.glVertex3f((-imageW / 2), (imageH / 2), -imageD/2);
+		gl.glVertex3f((-imageW / 2), (-imageH / 2), -imageD/2);
 		gl.glEnd();
 
 		// Second side of the box - since the first side looped around, we only need
@@ -336,20 +338,20 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 		gl.glBegin(GL.GL_LINE_STRIP);
 		gl.glColor3f(0.33f, 0.33f, 0.33f); // Sets the color for the lines
 		// Four vertices making up the second side
-		gl.glVertex3f((-imageW / 2), (-imageH / 2), 2*maxDiam);
-		gl.glVertex3f((imageW / 2), (-imageH / 2), 2*maxDiam);
-		gl.glVertex3f((imageW / 2), (imageH / 2), 2*maxDiam);
-		gl.glVertex3f((-imageW / 2), (imageH / 2), 2*maxDiam);
+		gl.glVertex3f((-imageW / 2), (-imageH / 2), imageD/2);
+		gl.glVertex3f((imageW / 2), (-imageH / 2), imageD/2);
+		gl.glVertex3f((imageW / 2), (imageH / 2), imageD/2);
+		gl.glVertex3f((-imageW / 2), (imageH / 2), imageD/2);
 		gl.glEnd();
 
 		// Third side of the box
 		gl.glBegin(GL.GL_LINE_STRIP);
 		gl.glColor3f(0.33f, 0.33f, 0.33f); // Sets the color for the lines
 		// Four vertices making up the third side
-		gl.glVertex3f((imageW / 2), (-imageH / 2), 2*maxDiam);
-		gl.glVertex3f((imageW / 2), (-imageH / 2), -2*maxDiam);
-		gl.glVertex3f((imageW / 2), (imageH / 2), -2*maxDiam);
-		gl.glVertex3f((imageW / 2), (imageH / 2), 2*maxDiam);
+		gl.glVertex3f((imageW / 2), (-imageH / 2), imageD/2);
+		gl.glVertex3f((imageW / 2), (-imageH / 2), -imageD/2);
+		gl.glVertex3f((imageW / 2), (imageH / 2), -imageD/2);
+		gl.glVertex3f((imageW / 2), (imageH / 2), imageD/2);
 		gl.glEnd();
 
 		// Fourth and final side of the box - no need to do the top and bottom
@@ -357,10 +359,10 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 		gl.glBegin(GL.GL_LINE_STRIP);
 		gl.glColor3f(0.33f, 0.33f, 0.33f); // Sets the color for the lines
 		// Four vertices making up the fourth side
-		gl.glVertex3f((imageW / 2), (-imageH / 2), -2*maxDiam);
-		gl.glVertex3f((-imageW / 2), (-imageH / 2), -2*maxDiam);
-		gl.glVertex3f((-imageW / 2), (imageH / 2), -2*maxDiam);
-		gl.glVertex3f((imageW / 2), (imageH / 2), -2*maxDiam);
+		gl.glVertex3f((imageW / 2), (-imageH / 2), -imageD/2);
+		gl.glVertex3f((-imageW / 2), (-imageH / 2), -imageD/2);
+		gl.glVertex3f((-imageW / 2), (imageH / 2), -imageD/2);
+		gl.glVertex3f((imageW / 2), (imageH / 2), -imageD/2);
 		gl.glEnd();
 
 		// Pops the current matrix off of the stack
@@ -376,7 +378,7 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 	 * @param z The z-position of the center of the particle.
 	 * @param maxDiam The maximum diameter of the particles in the image.
 	*/
-	void drawParticles(GLAutoDrawable drawable, double x, double y, float z, float maxDiam)
+	void drawParticles(GLAutoDrawable drawable, double x, double y, float z, double diam)
 	{
 		// Gets the current GL object
 		GL gl = drawable.getGL();
@@ -395,7 +397,7 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 		// Creates a sphere, using the GLQuadric object and specifies its diameter,
 		// number of slices, and number of stacks
 		// If spheres flicker, change number of slices and number of stacks to be lower
-		glu.gluSphere(quad, maxDiam / 2, 25, 14);
+		glu.gluSphere(quad, (float)(diam*grow) / 2, 25, 14);
 
 		// Pops the current matrix from the stack
 		gl.glPopMatrix();

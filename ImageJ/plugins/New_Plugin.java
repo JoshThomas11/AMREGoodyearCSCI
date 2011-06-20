@@ -13,7 +13,7 @@
  *			   Ruth Steinhour - rasteinhour@gmail.com
  *			   Joshua Thomas - jet4416@gmail.com
  *
- * Date last modified: June 8, 2011
+ * Date last modified: June 16, 2011
  * Version: 0.7
 */
 
@@ -61,7 +61,7 @@ import java.awt.*;
  *
  * @author		Benn Snyder
  * @author		Josh Thomas
- * @version		0.6.1, 05/20/11
+ * @version		0.6.7, 06/17/11
  */
 public class New_Plugin implements PlugInFilter
 {
@@ -261,7 +261,7 @@ public class New_Plugin implements PlugInFilter
 	 *
 	 * @return Returns the optimal bin width.
 	*/
-	float sizeBins(double[] data, ResultsTable rt)
+	double sizeBins(double[] data, ResultsTable rt)
 	{
 		float [] pars = new float [11];
 		// Calls the stats function to compute pars
@@ -271,7 +271,7 @@ public class New_Plugin implements PlugInFilter
 		stats(rt.getCounter(), data, pars);
 
 		// use Scott's method (1979 Biometrika, 66:605-610) for optimal binning: 3.49*sd*N^-1/3
-		return (float)(3.49 * pars[7]*(float)Math.pow(rt.getCounter(), -1.0/3.0));
+		return (3.49 * pars[7]*Math.pow(rt.getCounter(), -1.0/3.0));
 	}
 
 	/**
@@ -304,7 +304,7 @@ public class New_Plugin implements PlugInFilter
 	/**
 	 * Main driving method for the New_Plugin class. Executes the main functionality for the class.
 	 *
-	 * @param ip An ImageProcessor object that is used to work with the image.
+	 * @param inIP An ImageProcessor object that is used to work with the image.
 	*/
 	public void run(ImageProcessor inIP)
 	{
@@ -356,7 +356,10 @@ public class New_Plugin implements PlugInFilter
 			despeckle();
 		}
 		// Threshold
-		threshold();
+		if (!ow.thresholdCheck)
+		{
+			threshold();
+		}
 		// Checks if the user specified that the image needs to watersheded
 		if (ow.watershedCheck)
 		{
@@ -386,21 +389,19 @@ public class New_Plugin implements PlugInFilter
 
 		System.out.println("num particles = " + data.length);
 
-
+		// Grabs the maximum diameter from the data set of diameters
 		double max = Alg.arrayMax(data);
 
-
-		float binWidth = sizeBins(data, rt);
+		double binWidth = sizeBins(data, rt);
 		int nBins = numBins(data, rt);
-
-
+		
 		binWidth = (float)(max/(nBins+1));
 		System.out.println("nBins = " + nBins);
 		System.out.println("binWidth = " + binWidth);
+		
+		
+		double[] Na = Alg.getNa(data, nBins, binWidth, imp.getWidth() * imp.getHeight());
 
-
-		//nBins = 5;
-		//System.out.println("nBins = " + nBins);
 
 		System.out.println("Area = " + imp.getWidth() * imp.getHeight());
 
@@ -430,107 +431,47 @@ public class New_Plugin implements PlugInFilter
 				}
 			}
 		}
-
-		//new HistogramWindow("Distribution", imp, stats);
-
-		// Grabs the maximum diameter from the data set of diameters
-		//double max = Alg.arrayMax(data);
-		// Creates and launches the Graph Window, which plots Na and each of the computed Nv sets
-		GraphWindow gw = new GraphWindow(Alg.Na, results, results2, results3, max, nBins);
-		gw.start();
-
-		// original histogram
-		/*
+		
+		double[][] combinedNaNv = new double[nBins+1][4];
+		double area = imp.getWidth() * imp.getHeight();
+		double sumNa = 0, sumNv0 = 0, sumNv50 = 0, sumNv100 = 0;
+		for(int i = 0; i < Na.length; i++)
 		{
-			JFrame window = new JFrame();
-			JPanel panel = new JPanel(new FlowLayout());
-			Histogram hist = new Histogram();
-
-			hist.setSize(750, 500); // Sets the size of the coordinate axes window that is generated
-			hist.setTitle("Histogram, 3-D Distributions"); // Sets the histogram's title
-			//hist.setBinWidth(binWidth);
-			hist.setBinWidth(volBinWidth);
-			//hist.setBinWidth(50);
-			System.out.println("volBinWidth = " + volBinWidth);
-			//hist.setGrid(false); // No grid behind the plotted functions/points
-			//hist.setYRange(0, 100); // Sets the range of the y-axis
-			//hist.setXRange(max/(nBins+1), (max*(nBins+2))/(nBins+1)); // Sets the domain of the x-axis
-			//hist.setYLabel("Cumulative number, percent under size"); // Sets the label for the y-axis
-			//hist.setXLabel("Diameter (px)"); // Sets the label for the x-axis
-			hist.setButtons(true); // Sets the buttons to return to original zoom, etc. to be active
-			for (int i = 0; i < data.length; i++)
-			{
-				//hist.addPoint(0, (4/3)*Math.PI*Math.pow(data[i]/2, 3));
-				hist.addPoint(0, volData[i]);
-
-				//hist.addPoint(1, results2[i]);
-				//hist.addPoint(2, results3[i]);
-			}
-			// Scales plot to fit data
-			hist.fillPlot();
-
-			// Adds the legend for the data sets
-			hist.addLegend(0, "H = 0 px");
-			//hist.addLegend(1, "H = 50 px");
-			//hist.addLegend(2, "H = 100 px");
-			//hist.setBars(.25, 1);
-			panel.add(hist);
-			window.setContentPane(panel);
-			window.setSize(750,500);
-			// Packs all of the components into the frame to prepare to make it visible
-			window.pack();
-			// Sets the location of the frame in the center of the screen
-			window.setLocationRelativeTo(null);
-			window.setVisible(true);
+			sumNa += Na[i];
+			sumNv0 += results[i];
+			sumNv50 += results2[i];
+			sumNv100 += results3[i];
 		}
-		*/
-
-		/*
-		for (int i = 0; i < results.length; i++)
+		for(int i = 0; i <= nBins; i++)
 		{
-			System.out.println(results[i]);
+			combinedNaNv[i][0] = Na[i]*area;
+			combinedNaNv[i][1] = results[i]*area*(sumNa/sumNv0);
+			combinedNaNv[i][2] = results2[i]*area*(sumNa/sumNv50);
+			combinedNaNv[i][3] = results3[i]*area*(sumNa/sumNv100);
 		}
-		*/
+		
+		double alpha0 = Alg.getAlpha(combinedNaNv, binWidth, rt.getCounter(), 1);
+		double alpha1 = Alg.getAlpha(combinedNaNv, binWidth, rt.getCounter(), 2);
+		double alpha2 = Alg.getAlpha(combinedNaNv, binWidth, rt.getCounter(), 3);
 
-		// New Histogram
-		/*
+
+		// Creates and launchs the PDF Window, which produces the PDFs for Na and the selected Nv sets
+		if(ow.PDFCheck)
 		{
-			JFrame window = new JFrame();
-			JPanel panel = new JPanel(new FlowLayout());
-
-			Plot resultsPlot = new Plot();
-			resultsPlot.setBars(true);
-
-			resultsPlot.setSize(750, 500); // Sets the size of the coordinate axes window that is generated
-			resultsPlot.setTitle("Histogram of 3-D Particle Distribution"); // Sets the plot's title
-			//resultsPlot.setXLabel("Cumulative number, percent under size"); // Sets the label for the x-axis
-			resultsPlot.setYLabel("Number of particles per unit volume"); // Sets the label for the y-axis
-			resultsPlot.setMarksStyle("none");
-			resultsPlot.setImpulses(true);
-			resultsPlot.setButtons(true); // Sets the buttons to return to original zoom, etc. to be active
-
-			for (int i = 0; i < results.length; i++)
-			{
-				resultsPlot.addPoint(0, i, results[i], false);
-				resultsPlot.addPoint(1, i, results2[i], false);
-				resultsPlot.addPoint(2, i, results3[i], false);
-			}
-
-			resultsPlot.addLegend(0, "H = 0 px");
-			resultsPlot.addLegend(1, "H = 50 px");
-			resultsPlot.addLegend(2, "H = 100 px");
-
-			panel.add(resultsPlot);
-			window.setContentPane(panel);
-			window.setSize(750,500);
-			window.setTitle("Histogram of 3-D Particle Distribution");
-			// Packs all of the components into the frame to prepare to make it visible
-			window.pack();
-			// Sets the location of the frame in the center of the screen
-			window.setLocationRelativeTo(null);
-			window.setVisible(true);
+			PDFWindow pw = new PDFWindow(combinedNaNv, binWidth, nBins, ow.thicknessCheck, false, rt.getCounter());
+			pw.start();
 		}
-		*/
+		if(ow.PDFCheck2)
+		{
+			PDFWindow pw2 = new PDFWindow(combinedNaNv, binWidth, nBins, ow.thicknessCheck, true, rt.getCounter());
+			pw2.start();
+		}
+		// Creates and launches the Graph Window, which plots Na and the selected computed Nv sets
+		if(ow.CDFCheck)
+		{
+			GraphWindow gw = new GraphWindow(Na, results, results2, results3, max, nBins, ow.thicknessCheck);
+			gw.start();
+		}
 
 		double[][] centroids = new double[rt.getCounter()][2];
 
@@ -542,26 +483,26 @@ public class New_Plugin implements PlugInFilter
 
 		WindowManager.setCurrentWindow(new ImageWindow(impCopy));
 
-		/*
-		for (int i = 0; i < centroids.length; i++)
-		{
-			System.out.print("(" + (int)centroids[i][0] + ", " + (int)centroids[i][1] + "): " + impCopy.getPixel((int)centroids[i][0], (int)centroids[i][1])[0] + " "); // R
-			System.out.print(impCopy.getPixel((int)centroids[i][0], (int)centroids[i][1])[1] + " "); // G
-			System.out.print(impCopy.getPixel((int)centroids[i][0], (int)centroids[i][1])[2] + " "); // B
-			System.out.print(impCopy.getPixel((int)centroids[i][0], (int)centroids[i][1])[3]); // a
-			System.out.println();
-		}
-		*/
 
 		if (ow.percentParticles > 0)
 		{
 			// Creates the 3-D view for the particles
 			// Passes in the image width, image height, maximum diameter, and number of particles
-			ParticleBox pb = new ParticleBox(imp.getWidth(), imp.getHeight(), max, rt.getCounter(), centroids, ow.percentParticles);
-			pb.run();
-
-			//LaunchWindow lw = new LaunchWindow(gw, pb);
-			//lw.start();
+			if (ow.thicknessCheck[0])
+			{
+				ParticleBox pb0 = new ParticleBox(imp.getWidth(), imp.getHeight(), data, rt.getCounter(), centroids, (int)(sumNa/sumNv0), alpha0, ow.percentParticles);
+				pb0.run();
+			}
+			if (ow.thicknessCheck[1])
+			{
+				ParticleBox pb1 = new ParticleBox(imp.getWidth(), imp.getHeight(), data, rt.getCounter(), centroids, (int)(sumNa/sumNv50), alpha1, ow.percentParticles);
+				pb1.run();
+			}
+			if (ow.thicknessCheck[2])
+			{
+				ParticleBox pb2 = new ParticleBox(imp.getWidth(), imp.getHeight(), data, rt.getCounter(), centroids, (int)(sumNa/sumNv100), alpha2, ow.percentParticles);
+				pb2.run();
+			}
 		}
 
 		// Updates the image on screen

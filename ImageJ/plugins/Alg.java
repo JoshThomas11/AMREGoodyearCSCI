@@ -12,10 +12,6 @@
  */
 class Alg
 {
-	// Global variable definitions
-	static double[] Na;
-	static double delta = -1;
-
 	/**
 	 * Finds the maximum value in an array of doubles.
 	 *
@@ -55,38 +51,28 @@ class Alg
 		}
 		return min;
 	}
-
-	/**
-	 * The main function of the class. Computes the Schwartz-Saltikov algorithm from
-	 * the given input parameters.
-	 *
-	 * @param data Input data from ImageJ, consisting of the diameters of each particle in pixels
-	 * @param nBins The number of bins computed by ImageJ that the particles are placed into
-	 * @param thick The thickness of the slice/cross-section in pixels
-	 * @param area The area of the image, computed by multiplying the cropped image's width and height
-	 *
-	 * @return Nv The 3-D particle distribution, stored as an array of doubles
-	*/
-	public static double[] SSAlg(double[] data, int nBins, int thick, double area)
+	
+	public static double getAlpha(double[][] NaNv, double binWidth, int parts, int index)
 	{
-		// Finds the minimum and maximum diameters from the data
-		double max = arrayMax(data);
-		double min = arrayMin(data);
-
-		System.out.println("max = " + max);
-		System.out.println("min = " + min);
-
-		// Computes delta, the bin width
-		if (delta == -1)
+		double top = 0;
+		double bottom = 0;
+		
+		for (int i = 0; i < NaNv.length; i++)
 		{
-			delta = (max-min)/nBins;
+			top += (NaNv[i][index] / parts) * (i + 0.5) * binWidth;
+			bottom += (NaNv[i][0] / parts) * (i + 0.5) * binWidth;
 		}
-
+		
+		return top / bottom;		
+	}
+	
+	public static double[] getNa(double[] data, int nBins, double delta, double area)
+	{
 		// Constructs Na, the 2-D particle distribution
-		Na = new double[nBins+1];
-
+		double[] Na = new double[nBins+1];
+		
 		// "counter" variable used to determine the values in Na
-		double sum = 0;
+		int sum = 0;
 
 		// Nested looping structure that determines sum for each entry in Na and assigns (sum/area) to each entry in Na
 		for(int i = 0; i <= nBins; i++)
@@ -103,6 +89,9 @@ class Alg
 			Na[i] = sum/area;
 			sum = 0;
 		}
+		
+		
+		// debug printing begins here
 
 		System.out.println();
 		double naSum = 0;
@@ -114,8 +103,31 @@ class Alg
 		System.out.println("naSum = " + naSum);
 		System.out.println("particles/area = " + (data.length/area));
 		System.out.println();
+		
+		return Na;
+	}
+		
 
+	/**
+	 * The main function of the class. Computes the Schwartz-Saltikov algorithm from
+	 * the given input parameters.
+	 *
+	 * @param data Input data from ImageJ, consisting of the diameters of each particle in pixels
+	 * @param nBins The number of bins computed by ImageJ that the particles are placed into
+	 * @param thick The thickness of the slice/cross-section in pixels
+	 * @param area The area of the image, computed by multiplying the cropped image's width and height
+	 *
+	 * @return Nv The 3-D particle distribution, stored as an array of doubles
+	*/
+	public static double[] SSAlg(double[] data, int nBins, double delta, int thick, double area)
+	{
+		// Finds the minimum and maximum diameters from the data
+		double max = arrayMax(data);
+		double min = arrayMin(data);
 
+		System.out.println("max = " + max);
+		System.out.println("min = " + min);
+		
 		// Constructs the transition matrix, A (note that A is an upper-triangular matrix)
 		double[][] A = new double[nBins+1][nBins+1];
 
@@ -146,12 +158,16 @@ class Alg
 				System.out.println("A: " + A[i][j]);
 			}
 		}
+		
+		double[] Na = getNa(data, nBins, delta, area);
 
 		// Constructs Nv, the 3-D distribution of the particles
 		double[] Nv = new double[nBins+1];
 
 		// Back-substitution implementation
-		Nv[Nv.length-1] = Na[Na.length-1] / A[A.length-1][A[0].length-1]; // Assigns the last element of Nv to be Na's last element divided by A[last][last]
+		Nv[Nv.length-1] = Na[Na.length-1] / A[A.length-1][A[A.length-1].length-1]; // Assigns the last element of Nv to be Na's last element divided by A[last][last]
+
+		double sum;
 
 		// Back-populates Nv - k = rows, q = columns
 		for(int k = nBins-1; k >= 0; k--)
@@ -162,9 +178,7 @@ class Alg
 				// Only care when we are at or above the main diagonal, as A is upper-triangular
 				if(q >= k)
 				{
-					System.out.println("Nv[" + q + "] = " + Nv[q]);
 					sum += A[k][q] * Nv[q];
-					System.out.println(sum);
 				}
 			}
 			Nv[k] = (Na[k] - sum) / A[k][k];
@@ -179,22 +193,5 @@ class Alg
 		System.out.println();
 
 		return Nv;
-	}
-
-	/**
-	 * Runs the Schwartz-Saltikov algorithm, but takes an additional parameter - binWidth.
-	 *
-	 * @param data Input data from ImageJ, consisting of the diameters of each particle in pixels
-	 * @param nBins The number of bins computed by ImageJ that the particles are placed into
-	 * @param binWidth The width of each bin
-	 * @param thick The thickness of the slice/cross-section in pixels
-	 * @param area The area of the image, computed by multiplying the cropped image's width and height
-	 *
-	 * @return Nv The 3-D particle distribution, stored as an array of doubles
-	 */
-	public static double[] SSAlg(double[] data, int nBins, float binWidth, int thick, double area)
-	{
-		delta = binWidth;
-		return SSAlg(data, nBins, thick, area);
 	}
 }
