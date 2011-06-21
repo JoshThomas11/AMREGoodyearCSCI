@@ -41,9 +41,9 @@ import java.awt.*;
  *
  * Alg.java
  * GraphWindow.java
- * LaunchWindow.java
  * OptionWindow.java
  * ParticleBox.java
+ * PDFWindow.java
  * VersatileWand.java
 */
 
@@ -191,14 +191,7 @@ public class New_Plugin implements PlugInFilter
 			iter++;
 		}
 
-		/*
-		System.out.println(iter);
-		System.out.println("wandX = " + curX);
-		System.out.println("wandY = " + curY);
-		*/
-
 		// Use the VersatileWand in the white point and then crop the image.
-		//new VersatileWand().mousePressed(Integer.toString(curX), Integer.toString(curY));
 		VersatileWand.mousePressed(Integer.toString(curX), Integer.toString(curY));
 
 		// Make a copy of the region of interest to return
@@ -231,7 +224,6 @@ public class New_Plugin implements PlugInFilter
 	 */
 	private void threshold()
 	{
-		// Automatic Thresholding doesn't work (yet), so we get the user to do it.
 		IJ.run("Threshold...");
 		// Wait to make sure the Threshold dialog is ready.
 		pause(500);
@@ -369,41 +361,27 @@ public class New_Plugin implements PlugInFilter
 		// Analyze particles
 		IJ.run("Set Measurements...", "area center shape redirect=None decimal=3");
 		IJ.run("Analyze Particles...");
-		//IJ.run("Analyze Particles...", "show=Outlines display exclude clear record");
-		//IJ.run("Analyze Particles...", "show=Outlines display clear record");
-		//IJ.run("Analyze Particles...", "display exclude clear record");
 
 		// Get results
 		ResultsTable rt = ResultsTable.getResultsTable();
 
 		// Creates an array to store the diameters that ImageJ computes for each particle
-		//float[] data = new float[rt.getCounter()];
 		double[] data = new double[rt.getCounter()];
 		for (int i = 0; i < rt.getCounter(); i++)
 		{
 			// Stores the diameters of each recognized particle into the array
-			data[i] = (float)(2*Math.sqrt(rt.getValue("Area", i) / Math.PI));
-
-			System.out.println("data[" + i + "] = " + data[i]);
+			data[i] = (2*Math.sqrt(rt.getValue("Area", i) / Math.PI));
 		}
-
-		System.out.println("num particles = " + data.length);
 
 		// Grabs the maximum diameter from the data set of diameters
 		double max = Alg.arrayMax(data);
 
 		double binWidth = sizeBins(data, rt);
 		int nBins = numBins(data, rt);
-
 		binWidth = (float)(max/(nBins+1));
-		System.out.println("nBins = " + nBins);
-		System.out.println("binWidth = " + binWidth);
 
 
 		double[] Na = Alg.getNa(data, nBins, binWidth, imp.getWidth() * imp.getHeight());
-
-
-		System.out.println("Area = " + imp.getWidth() * imp.getHeight());
 
 		// Computes Nv for thickness = 0 pixels
 		double[] results = Alg.SSAlg(data, nBins, binWidth, 0, imp.getWidth() * imp.getHeight());
@@ -481,7 +459,7 @@ public class New_Plugin implements PlugInFilter
 			centroids[i][1] = rt.getValue("YM", i);
 		}
 
-		WindowManager.setCurrentWindow(new ImageWindow(impCopy));
+		//WindowManager.setCurrentWindow(new ImageWindow(impCopy));
 
 
 		if (ow.percentParticles > 0)

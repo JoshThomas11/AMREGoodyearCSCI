@@ -118,20 +118,6 @@ final class Alg
 			sum = 0;
 		}
 
-
-		// debug printing begins here
-
-		System.out.println();
-		double naSum = 0;
-		for (int i = 0; i < Na.length; i++)
-		{
-			System.out.println("Na: " + Na[i]);
-			naSum += Na[i];
-		}
-		System.out.println("naSum = " + naSum);
-		System.out.println("particles/area = " + (data.length/area));
-		System.out.println();
-
 		return Na;
 	}
 
@@ -153,9 +139,6 @@ final class Alg
 		double max = arrayMax(data);
 		double min = arrayMin(data);
 
-		System.out.println("max = " + max);
-		System.out.println("min = " + min);
-
 		// Constructs the transition matrix, A (note that A is an upper-triangular matrix)
 		double[][] A = new double[nBins+1][nBins+1];
 
@@ -176,14 +159,6 @@ final class Alg
 				{
 					A[i-1][j-1] = 0;
 				}
-			}
-		}
-
-		for (int i = 0; i < A.length; i++)
-		{
-			for (int j = 0; j < A[i].length; j++)
-			{
-				System.out.println("A: " + A[i][j]);
 			}
 		}
 
@@ -211,15 +186,8 @@ final class Alg
 			}
 			Nv[k] = (Na[k] - sum) / A[k][k];
 		}
+		
 		// Returns the 3-D distribution
-
-		System.out.println();
-		for (int i = 0; i < Nv.length; i++)
-		{
-			System.out.println("Nv: " + Nv[i]);
-		}
-		System.out.println();
-
 		return Nv;
 	}
 }
