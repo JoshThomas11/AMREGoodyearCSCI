@@ -9,7 +9,7 @@ import javax.media.opengl.*;
 
 
 /*
- * Particle Box
+ * Cylinder Window
  * A JFrame window that uses OpenGL (JOGL) to produce a 3-D visualization of the
  * particles inside the sample.
 */
@@ -22,7 +22,7 @@ import javax.media.opengl.*;
  * @author Josh Thomas
  * @version 0.1, 06/08/11
  */
-class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseListener, MouseMotionListener
+class CylinderWindow extends JFrame implements GLEventListener, KeyListener, MouseListener, MouseMotionListener
 {
 	// Global Variables
 
@@ -42,19 +42,11 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 	// Quadric object for particles (spheres)
 	GLUquadric quad;
 
-	// Two-dimensional array to store random locations of particles
-	float[] locations;
-
-	int percentParts;
-	int[] chosenParts;
-
-	double[][] centroids;
-
 	// Variables to be passed in to the constructor
-	int imageW = 0, imageH = 0, imageD = 0;
-	double[] diams;
-	int numParts = 0;
-	double grow = 1;
+	int imageW = 0, imageH = 0;
+	double[] xLocs, yLocs, minorA, rotateAng, cylAng;
+
+	final float height = 400;
 
 	// Lighting Variables
 
@@ -85,25 +77,23 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 	 * @param particles The number of particles counted in the image.
 	 * @param percentParticles The percent of particles to display.
 	 */
-	public ParticleBox(int w, int h, double[] data, int particles, double[][] centers, int z, double alpha, int percentParticles)
+	public CylinderWindow(double[] x, double[] y, double[] minAxis, double[] rotAngle, double[] cylAngle, int w, int h)
 	{
 		// Sets the title for the JFrame
-		super("3-D Particle Visualization: (H = " + z + ")");
+		super("Filament 3-D Representation");
 
 		// Initializes the OpenGL variables
 		glu = new GLU();
 		quad = glu.gluNewQuadric();
 
-		centroids = centers;
-
 		// Assigns the passed-in data to the class variables
 		imageW = w;
 		imageH = h;
-		diams = data;
-		numParts = particles;
-		grow = alpha;
-		imageD = z;
-		percentParts = percentParticles;
+		xLocs = x;
+		yLocs = y;
+		minorA = minAxis;
+		rotateAng = rotAngle;
+		cylAng = cylAngle;
 
 		// Initializes the GLCapabilities object and specifies that we want double buffering
 		caps = new GLCapabilities();
@@ -116,15 +106,6 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 		canvas.addMouseListener(this); // Sets the Mouse Listener
 		canvas.addMouseMotionListener(this); // Sets the Mouse Motion Listener
 		getContentPane().add(canvas); // Adds the GLCanvas to the JFrame
-
-		// Initializes the locations array
-		locations = new float[numParts];
-		// Creates and stores the locations for the particles
-		locationStorage();
-		if (percentParts != 100)
-		{
-			particleStorage();
-		}
 	}
 
 	/**
@@ -179,62 +160,6 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 	}
 
 	/**
-	 * Creates and stores random locations for each particle from the image. Will eventually
-	 * store the interpolated locations from the algorithm.
-	*/
-	public void locationStorage()
-	{
-		// Creates a new random number generator
-		Random RNG = new Random();
-
-		// For all particles in the image, creates random locations
-		for (int q = 0; q < numParts; q++)
-		{
-			// z-location, scaled based on maximum diameter of particles
-			locations[q] = (float) RNG.nextDouble() * (imageD/2);
-			// Randomly determines if z-location should be positive or negative
-			if (RNG.nextBoolean())
-			{
-				locations[q] *= -1;
-			}
-		}
-	}
-
-	/**
-	 * Decides (via Random) which particles should be drawn if the user
-	 * specified that only a certain percentage should be in the rendering.
-	 */
-	public void particleStorage()
-	{
-		Random RNG = new Random();
-
-		chosenParts = new int[(int)(numParts * (percentParts/100.0f))];
-
-		for (int i = 0; i < chosenParts.length; i++)
-		{
-			boolean goAgain = false;
-			do
-			{
-				goAgain = false;
-				int tmp = RNG.nextInt(numParts);
-
-				for (int j = 0; j < i; j++)
-				{
-					if (chosenParts[j] == tmp)
-					{
-						goAgain = true;
-					}
-				}
-				if (!goAgain)
-				{
-					chosenParts[i] = tmp;
-				}
-			}
-			while (goAgain);
-		}
-	}
-
-	/**
 	 * Display method for OpenGL. Handles the drawing of objects and swaps the buffers on
 	 * the canvas for fast 3-D rendering during trackball movement.
 	 *
@@ -263,27 +188,12 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 		// Pushes current matrix to the stack
 		gl.glPushMatrix();
 
-		// Rotates the sample to "look like a table"
-		gl.glRotatef(90, 1, 0, 0);
-		// Sets up the boundaries of the slice of the sample
+		// Sets up the boundaries of the sample box
 		drawBoundingBox(drawable);
 
-		gl.glTranslatef(-imageW/2, -imageH/2, 0);
-		if (percentParts == 100)
+		for(int i = 0; i < xLocs.length; i++)
 		{
-			// Sets up the particles (spheres)
-			for(int q = 0; q < numParts; q++)
-			{
-				// Draws the particles, given the stored locations and the maximum diameter in the image
-				drawParticles(drawable, centroids[q][0], centroids[q][1], locations[q], diams[q]);
-			}
-		}
-		else
-		{
-			for (int q = 0; q < chosenParts.length; q++)
-			{
-				drawParticles(drawable, centroids[chosenParts[q]][0], centroids[chosenParts[q]][1], locations[chosenParts[q]], diams[chosenParts[q]]);
-			}
+			drawCylinders(drawable, xLocs[i], yLocs[i], minorA[i], rotateAng[i], cylAng[i]);
 		}
 
 		// Disables lighting
@@ -298,7 +208,7 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 	}
 
 	/**
-	 * Draws the lines that make up the "wireframe" edges of the slice of the sample.
+	 * Draws the lines that make up the "wireframe" box.
 	 *
 	 * @param drawable A GLAutoDrawable object. Used to keep the correct GL object.
 	*/
@@ -307,6 +217,8 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 		// Gets current GL object
 		GL gl = drawable.getGL();
 
+		float zDepth = (float)(imageW+imageH) / 4;
+
 		// Pushes the current matrix to the stack
 		gl.glPushMatrix();
 		// Draws the first side of the box
@@ -314,10 +226,10 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 		gl.glColor3f(0.33f, 0.33f, 0.33f); // Sets the color for the lines
 		// Four vertices making up the first side, based on image dimensions
 		// and max particle diameter
-		gl.glVertex3f((-imageW / 2), (-imageH / 2), imageD/2);
-		gl.glVertex3f((-imageW / 2), (imageH / 2), imageD/2);
-		gl.glVertex3f((-imageW / 2), (imageH / 2), -imageD/2);
-		gl.glVertex3f((-imageW / 2), (-imageH / 2), -imageD/2);
+		gl.glVertex3f((-imageW / 2), (-imageH / 2), zDepth);
+		gl.glVertex3f((-imageW / 2), (imageH / 2), zDepth);
+		gl.glVertex3f((-imageW / 2), (imageH / 2), -zDepth);
+		gl.glVertex3f((-imageW / 2), (-imageH / 2), -zDepth);
 		gl.glEnd();
 
 		// Second side of the box - since the first side looped around, we only need
@@ -325,20 +237,20 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 		gl.glBegin(GL.GL_LINE_STRIP);
 		gl.glColor3f(0.33f, 0.33f, 0.33f); // Sets the color for the lines
 		// Four vertices making up the second side
-		gl.glVertex3f((-imageW / 2), (-imageH / 2), imageD/2);
-		gl.glVertex3f((imageW / 2), (-imageH / 2), imageD/2);
-		gl.glVertex3f((imageW / 2), (imageH / 2), imageD/2);
-		gl.glVertex3f((-imageW / 2), (imageH / 2), imageD/2);
+		gl.glVertex3f((-imageW / 2), (-imageH / 2), zDepth);
+		gl.glVertex3f((imageW / 2), (-imageH / 2), zDepth);
+		gl.glVertex3f((imageW / 2), (imageH / 2), zDepth);
+		gl.glVertex3f((-imageW / 2), (imageH / 2), zDepth);
 		gl.glEnd();
 
 		// Third side of the box
 		gl.glBegin(GL.GL_LINE_STRIP);
 		gl.glColor3f(0.33f, 0.33f, 0.33f); // Sets the color for the lines
 		// Four vertices making up the third side
-		gl.glVertex3f((imageW / 2), (-imageH / 2), imageD/2);
-		gl.glVertex3f((imageW / 2), (-imageH / 2), -imageD/2);
-		gl.glVertex3f((imageW / 2), (imageH / 2), -imageD/2);
-		gl.glVertex3f((imageW / 2), (imageH / 2), imageD/2);
+		gl.glVertex3f((imageW / 2), (-imageH / 2), zDepth);
+		gl.glVertex3f((imageW / 2), (-imageH / 2), -zDepth);
+		gl.glVertex3f((imageW / 2), (imageH / 2), -zDepth);
+		gl.glVertex3f((imageW / 2), (imageH / 2), zDepth);
 		gl.glEnd();
 
 		// Fourth and final side of the box - no need to do the top and bottom
@@ -346,47 +258,36 @@ class ParticleBox extends JFrame implements GLEventListener, KeyListener, MouseL
 		gl.glBegin(GL.GL_LINE_STRIP);
 		gl.glColor3f(0.33f, 0.33f, 0.33f); // Sets the color for the lines
 		// Four vertices making up the fourth side
-		gl.glVertex3f((imageW / 2), (-imageH / 2), -imageD/2);
-		gl.glVertex3f((-imageW / 2), (-imageH / 2), -imageD/2);
-		gl.glVertex3f((-imageW / 2), (imageH / 2), -imageD/2);
-		gl.glVertex3f((imageW / 2), (imageH / 2), -imageD/2);
+		gl.glVertex3f((imageW / 2), (-imageH / 2), -zDepth);
+		gl.glVertex3f((-imageW / 2), (-imageH / 2), -zDepth);
+		gl.glVertex3f((-imageW / 2), (imageH / 2), -zDepth);
+		gl.glVertex3f((imageW / 2), (imageH / 2), -zDepth);
 		gl.glEnd();
 
 		// Pops the current matrix off of the stack
 		gl.glPopMatrix();
 	}
 
-	/**
-	 * Draws the particles (spheres) from the image.
-	 *
-	 * @param drawable A GLAutoDrawable object. Used to keep the correct GL object.
-	 * @param x The x-position of the center of the particle.
-	 * @param y The y-position of the center of the particle.
-	 * @param z The z-position of the center of the particle.
-	 * @param maxDiam The maximum diameter of the particles in the image.
-	*/
-	void drawParticles(GLAutoDrawable drawable, double x, double y, float z, double diam)
+	void drawCylinders(GLAutoDrawable drawable, double x, double y, double rad, double XYRotation, double CylRotation)
 	{
 		// Gets the current GL object
 		GL gl = drawable.getGL();
 
-		// Pushes the current matrix on the stack
 		gl.glPushMatrix();
-		// Translates the sphere to its (x, y, z) location
-		gl.glTranslatef((float)x, (float)y, z);
-		// Sets the material properties for the sphere - allows for lighting
+
+		gl.glTranslatef((float) x-((float)(imageW/2)), 0, (float) y-((float)(imageH/2)));
+		gl.glRotatef((float) XYRotation, 0, 1, 0);
+		gl.glRotatef(-90, 0, 1, 0);
+		gl.glRotatef(-(float) CylRotation, 1, 0, 0);
+		gl.glTranslatef(0, -height/2, 0);
+		gl.glRotatef(-90, 1, 0, 0);
 		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_EMISSION, clear_mat, 0);
 		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_AMBIENT, mat_emission2, 0);
 		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_DIFFUSE, mat_emission2, 0);
 		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_SPECULAR, mat_emission2, 0);
 		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_SHININESS, light_shininess, 0);
+		glu.gluCylinder(quad, (float) rad, (float) rad, height, 10, 10);
 
-		// Creates a sphere, using the GLQuadric object and specifies its diameter,
-		// number of slices, and number of stacks
-		// If spheres flicker, change number of slices and number of stacks to be lower
-		glu.gluSphere(quad, (float)(diam*grow) / 2, 25, 14);
-
-		// Pops the current matrix from the stack
 		gl.glPopMatrix();
 	}
 

@@ -57,7 +57,7 @@ class PDFWindow extends JPanel
 		// Creates a new Plot object
 		p = new Plot();
 		p.setSize(750, 500); // Sets the size of the coordinate axes window that is generated
-		p.setTitle("Plot of PDFs, 2-D Distribution, 3-D Distribution"); // Sets the "figure's" title
+		p.setTitle("Plot of PDFs: 2-D Distribution, 3-D Distributions"); // Sets the "figure's" title
 		//p.setGrid(false); // No grid behind the plotted functions/points
 		if(!opt)
 		{
@@ -76,7 +76,7 @@ class PDFWindow extends JPanel
 		}
 		p.setXLabel("Diameter (px)"); // Sets the label for the x-axis
 		p.setMarksStyle("none");
-		p.setBars(0.5, 0.3); // Makes the plot a bar graph
+		p.setBars(0.3, 0.15); // Makes the plot a bar graph
 		p.setImpulses(true);
 		p.setButtons(true); // Sets the buttons to return to original zoom, etc. to be active
 
@@ -106,9 +106,6 @@ class PDFWindow extends JPanel
 			idxCount = 1;
 		}
 
-		// Scales plot to fit data
-		//p.fillPlot();
-
 		// Adds the legend for the data sets
 		p.addLegend(0, "2-D Distribution");
 		if(flags[0])
@@ -125,6 +122,9 @@ class PDFWindow extends JPanel
 		{
 			p.addLegend(idxCount, "H = 100 px");
 		}
+
+		// Scales plot to fit data
+		p.fillPlot();
 
 		// Adds the Plot object to the JPanel
 		graphPanel.add(p);

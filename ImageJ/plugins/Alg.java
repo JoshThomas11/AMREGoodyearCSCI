@@ -186,7 +186,7 @@ final class Alg
 			}
 			Nv[k] = (Na[k] - sum) / A[k][k];
 		}
-		
+
 		// Returns the 3-D distribution
 		return Nv;
 	}

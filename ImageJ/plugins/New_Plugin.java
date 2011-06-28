@@ -83,7 +83,7 @@ public class New_Plugin implements PlugInFilter
 	 *
 	 * @param	milliseconds Time to pause in milliseconds
 	 */
-	void pause(long milliseconds)
+	static void pause(long milliseconds)
 	{
 		try
 		{
@@ -95,22 +95,22 @@ public class New_Plugin implements PlugInFilter
 
 	/**
 	 * Gathers a variety of statistics about the passed in data and puts those in pars[].
-	 * Taken from ImageJ's Distribution class.
+	 * Taken and modified from ImageJ's Distribution class.
 	 */
-	void stats(int nc, double[] data, float[] pars)
+	void stats(int nc, double[] data, double[] pars)
 	{
-		float s = 0, min = Float.MAX_VALUE, max = -Float.MAX_VALUE, totl=0, ave=0, adev=0, sdev=0, var=0, skew=0, kurt=0, p;
+		double s = 0, min = Double.MAX_VALUE, max = Double.MIN_VALUE, totl=0, ave=0, adev=0, sdev=0, var=0, skew=0, kurt=0, p;
 
 		for (int i = 0; i < nc; i++)
 		{
 			totl += data[i];
 			if (data[i] < min)
 			{
-				min = (float)data[i];
+				min = data[i];
 			}
 			if (data[i] > max)
 			{
-				max = (float)data[i];
+				max = data[i];
 			}
 		}
 
@@ -118,7 +118,7 @@ public class New_Plugin implements PlugInFilter
 
 		for (int i = 0; i < nc; i++)
 		{
-			s = (float)(data[i] - ave);
+			s = data[i] - ave;
 			adev += Math.abs(s);
 			p = s * s;
 			var += p;
@@ -130,12 +130,12 @@ public class New_Plugin implements PlugInFilter
 
 		adev /= nc;
 		var /= nc-1;
-		sdev = (float)Math.sqrt(var);
+		sdev = Math.sqrt(var);
 
 		if (var > 0)
 		{
-			skew /= (nc * (float) Math.pow(sdev, 3));
-			kurt = kurt / (nc * (float) Math.pow(var, 2)) - 3;
+			skew /= nc * Math.pow(sdev, 3);
+			kurt = kurt / (nc * Math.pow(var, 2)) - 3;
 		}
 
 		pars[1] = nc;
@@ -255,7 +255,7 @@ public class New_Plugin implements PlugInFilter
 	*/
 	double sizeBins(double[] data, ResultsTable rt)
 	{
-		float [] pars = new float [11];
+		double [] pars = new double [11];
 		// Calls the stats function to compute pars
 		// standard deviation has index 7
 		// minimum area has index 3
@@ -277,7 +277,7 @@ public class New_Plugin implements PlugInFilter
 	*/
 	int numBins(double[] data, ResultsTable rt)
 	{
-		float [] pars = new float [11];
+		double [] pars = new double [11];
 		// Calls the stats function to compute pars
 		// standard deviation has index 7
 		// minimum area has index 3
@@ -330,7 +330,6 @@ public class New_Plugin implements PlugInFilter
 		if (ow.invertCheck)
 		{
 			ip.invert();
-			//ip.invertLut();
 		}
 		// Checks if the user specified that the image needs to be binarized
 		if (ow.thresholdCheck)
@@ -359,7 +358,7 @@ public class New_Plugin implements PlugInFilter
 		}
 
 		// Analyze particles
-		IJ.run("Set Measurements...", "area center shape redirect=None decimal=3");
+		IJ.run("Set Measurements...", "area center shape redirect=None decimal=6");
 		IJ.run("Analyze Particles...");
 
 		// Get results
@@ -378,7 +377,7 @@ public class New_Plugin implements PlugInFilter
 
 		double binWidth = sizeBins(data, rt);
 		int nBins = numBins(data, rt);
-		binWidth = (float)(max/(nBins+1));
+		binWidth = (max/(nBins+1));
 
 
 		double[] Na = Alg.getNa(data, nBins, binWidth, imp.getWidth() * imp.getHeight());
