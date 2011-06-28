@@ -1,3 +1,6 @@
+// Package Imports
+
+// Java Packages
 import java.awt.*;
 import java.util.*;
 import java.awt.event.*;
@@ -10,17 +13,17 @@ import javax.media.opengl.*;
 
 /*
  * Cylinder Window
- * A JFrame window that uses OpenGL (JOGL) to produce a 3-D visualization of the
- * particles inside the sample.
+ * A JFrame window that uses OpenGL (JOGL) to produce a 3-D visualization of cylinders
+ * extending outward from ellipses in a 2-D image.
 */
 /**
  * A JFrame window that is launched at the end of the execution of the main plugin.
- * The window provides a 3-D visualization of the particles in the 2-D scanned
- * cross-section, using OpenGL (Java OpenGL (JOGL)) to render the view.
+ * The window provides a 3-D visualization of cylinders which come from their imprint (ellipses)
+ * on a 2-D plane.
  *
  * @author Benn Snyder
  * @author Josh Thomas
- * @version 0.1, 06/08/11
+ * @version 0.5, 06/28/11
  */
 class CylinderWindow extends JFrame implements GLEventListener, KeyListener, MouseListener, MouseMotionListener
 {
@@ -46,6 +49,7 @@ class CylinderWindow extends JFrame implements GLEventListener, KeyListener, Mou
 	int imageW = 0, imageH = 0;
 	double[] xLocs, yLocs, minorA, rotateAng, cylAng;
 
+	// Length/height of the cylinders
 	final float height = 400;
 
 	// Lighting Variables
@@ -71,11 +75,13 @@ class CylinderWindow extends JFrame implements GLEventListener, KeyListener, Mou
 	 * Default constructor for the class. Builds the JFrame, assigns the passed-in data
 	 * to the class variables, and configures the GLCanvas.
 	 *
-	 * @param w The width of the image that was analyzed in ImageJ.
-	 * @param h The height of the image that was analyzed in ImageJ.
-	 * @param diam The maximum diameter from the analyzed image.
-	 * @param particles The number of particles counted in the image.
-	 * @param percentParticles The percent of particles to display.
+	 * @param x An array of the x-coordinates for each ellipse's center of mass.
+	 * @param y An array of the y-coordinates for each ellipse's center of mass.
+	 * @param minAxis An array of the lengths of each ellipse's minor axis (radius).
+	 * @param rotAngle An array of the angles each ellipse has been rotated by to make them not axially-aligned.
+	 * @param cylAngle An array of the computed angles for each cylinder.
+	 * @param w The image's width in pixels.
+	 * @param h The image's height in pixels.
 	 */
 	public CylinderWindow(double[] x, double[] y, double[] minAxis, double[] rotAngle, double[] cylAngle, int w, int h)
 	{
@@ -191,6 +197,7 @@ class CylinderWindow extends JFrame implements GLEventListener, KeyListener, Mou
 		// Sets up the boundaries of the sample box
 		drawBoundingBox(drawable);
 
+		// Draws each of the cylinders
 		for(int i = 0; i < xLocs.length; i++)
 		{
 			drawCylinders(drawable, xLocs[i], yLocs[i], minorA[i], rotateAng[i], cylAng[i]);
@@ -268,26 +275,48 @@ class CylinderWindow extends JFrame implements GLEventListener, KeyListener, Mou
 		gl.glPopMatrix();
 	}
 
+	/**
+	 * Draws a cylinder, given its location, radius, and rotation angles.
+	 *
+	 * @param drawable A GLAutoDrawable object. Used to keep the correct GL object.
+	 * @param x The x-coordinate of the ellipse's center of mass in the original 2-D image.
+	 * @param y The y-coordinate of the ellipse's center of mass in the original 2-D image.
+	 * @param rad The cylinder's radius. Comes from the minor axis length of the ellipse.
+	 * @param XYRotation The angle measurement (in degrees) that the cylinder must be rotated by to line it up with the ellipse (removal of axial alignment).
+	 * @param CylRotation The height angle measurement (in degrees) that the cylinder must be rotated to produce the correct ellipse in 2-D.
+	*/
 	void drawCylinders(GLAutoDrawable drawable, double x, double y, double rad, double XYRotation, double CylRotation)
 	{
 		// Gets the current GL object
 		GL gl = drawable.getGL();
 
+		// Pushes the current matrix to the stack
 		gl.glPushMatrix();
 
+		// Translates the cylinder to the correct spatial location
 		gl.glTranslatef((float) x-((float)(imageW/2)), 0, (float) y-((float)(imageH/2)));
+		// Rotates the cylinder to remove axial alignment
 		gl.glRotatef((float) XYRotation, 0, 1, 0);
+		// Rotates the cylinder to be aligned with the x-axis
 		gl.glRotatef(-90, 0, 1, 0);
+		// Rotates the cylinder from being upright to pitched at the correct angle
 		gl.glRotatef(-(float) CylRotation, 1, 0, 0);
+		// Moves the cylinder so that the center is at the origin
 		gl.glTranslatef(0, -height/2, 0);
+		// Rotates the cylinder to be upright, base at y=0, top at y=height
 		gl.glRotatef(-90, 1, 0, 0);
+		// Applies lighting properties
 		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_EMISSION, clear_mat, 0);
 		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_AMBIENT, mat_emission2, 0);
 		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_DIFFUSE, mat_emission2, 0);
 		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_SPECULAR, mat_emission2, 0);
 		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_SHININESS, light_shininess, 0);
+		// Builds the cylinder using the quadric object
+		// Top and bottom of cylinder have same radius
+		// cylinder is height units high
 		glu.gluCylinder(quad, (float) rad, (float) rad, height, 10, 10);
 
+		// Pops the top matrix off of the stack
 		gl.glPopMatrix();
 	}
 

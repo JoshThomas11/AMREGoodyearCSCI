@@ -6,12 +6,16 @@
  * program ImageJ. This plugin creates cylinders extending through the ellipses in the
  * source image using OpenGL.
  *
- * Written by: Benn Snyder - benn.snyder@gmail.com
- *			   Ruth Steinhour - rasteinhour@gmail.com
- *			   Joshua Thomas - jet4416@gmail.com
+ * Written by:
+ * Benn Snyder - benn.snyder@gmail.com
+ * Ruth Steinhour - rasteinhour@gmail.com
+ * Joshua Thomas - jet4416@gmail.com
  *
- * Date last modified: June 27, 2011
- * Version: 0.1
+ * Special thanks to:
+ * Dr. John Ramsay, Professor of Mathematics and Computer Science at The College of Wooster
+ *
+ * Date last modified: June 28, 2011
+ * Version: 0.5
 */
 
 /*
@@ -54,7 +58,7 @@ import java.util.*;
  *
  * @author		Benn Snyder
  * @author		Josh Thomas
- * @version		0.1, 06/27/11
+ * @version		0.5, 06/28/11
  */
 public class Ellipse_Plugin implements PlugInFilter
 {
@@ -62,6 +66,14 @@ public class Ellipse_Plugin implements PlugInFilter
 	ImagePlus imp;
 	ImageProcessor ip;
 
+	/**
+	 * Setup function required by PlugInFilter.
+	 *
+	 * @param arg Argument passed into the plugin.
+	 * @param inIMP The ImagePlus object currently active in ImageJ.
+	 *
+	 * @return Flag that lists the capabilities of the plugin.
+	*/
 	public int setup(String arg, ImagePlus inIMP)
 	{
 		imp = inIMP;
@@ -75,8 +87,10 @@ public class Ellipse_Plugin implements PlugInFilter
 	*/
 	public void run(ImageProcessor inIP)
 	{
+		// Unlocks the image
 		imp.unlock();
 
+		// Sets the plugin's image processor to the current one
 		ip = inIP;
 
 		// Analyze particles
@@ -87,35 +101,34 @@ public class Ellipse_Plugin implements PlugInFilter
 		ResultsTable rt = ResultsTable.getResultsTable();
 
 		// Grabs data from the Results Table and calls Cylinder Window to construct the OpenGL components
-		else
+		// Variables for the data
+		double[] xLoc = new double[rt.getCounter()];
+		double[] yLoc = new double[rt.getCounter()];
+		double[] minA = new double[rt.getCounter()];
+		double[] majA = new double[rt.getCounter()];
+		double[] XYAng = new double[rt.getCounter()];
+		double[] cylAng = new double[rt.getCounter()];
+		
+		// Loop grabs data for each "particle"
+		for(int i = 0; i < rt.getCounter(); i++)
 		{
-			// Variables for the data
-			double[] xLoc = new double[rt.getCounter()];
-			double[] yLoc = new double[rt.getCounter()];
-			double[] minA = new double[rt.getCounter()];
-			double[] majA = new double[rt.getCounter()];
-			double[] XYAng = new double[rt.getCounter()];
-			double[] cylAng = new double[rt.getCounter()];
-			// Loop grabs data for each "particle"
-			for(int i = 0; i < rt.getCounter(); i++)
-			{
-				// (x,y) center of mass
-				xLoc[i] = rt.getValue("XM", i);
-				yLoc[i] = rt.getValue("YM", i);
-				// Minor axis (radius)
-				minA[i] = rt.getValue("Minor", i) / 2;
-				// Major axis (radius)
-				majA[i] = rt.getValue("Major", i) / 2;
-				// Angle of rotation in xy-plane
-				XYAng[i] = rt.getValue("Angle", i);
-				cylAng[i] = (180/Math.PI)*Math.acos(minA[i]/majA[i]);
-			}
-
-			// Calls Cylinder Window class to do OpenGL stuff
-			CylinderWindow cw = new CylinderWindow(xLoc, yLoc, minA, XYAng, cylAng, imp.getWidth(), imp.getHeight());
-			cw.run();
+			// (x,y) center of mass
+			xLoc[i] = rt.getValue("XM", i);
+			yLoc[i] = rt.getValue("YM", i);
+			// Minor axis (radius)
+			minA[i] = rt.getValue("Minor", i) / 2;
+			// Major axis (radius)
+			majA[i] = rt.getValue("Major", i) / 2;
+			// Angle of rotation in xy-plane
+			XYAng[i] = rt.getValue("Angle", i);
+			cylAng[i] = (180/Math.PI)*Math.acos(minA[i]/majA[i]);
 		}
 
+		// Calls Cylinder Window class to do OpenGL stuff
+		CylinderWindow cw = new CylinderWindow(xLoc, yLoc, minA, XYAng, cylAng, imp.getWidth(), imp.getHeight());
+		cw.run();
+		
+		// Re-locks the image
 		imp.lock();
 	}
 }
