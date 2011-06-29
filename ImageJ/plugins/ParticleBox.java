@@ -1,3 +1,6 @@
+// Package Imports
+
+// Java Packages
 import java.awt.*;
 import java.util.*;
 import java.awt.event.*;

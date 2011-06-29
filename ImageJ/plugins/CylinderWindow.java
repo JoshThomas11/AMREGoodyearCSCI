@@ -10,6 +10,9 @@ import javax.swing.*;
 import javax.media.opengl.glu.*;
 import javax.media.opengl.*;
 
+// GLUT Package
+import com.sun.opengl.util.GLUT;
+
 
 /*
  * Cylinder Window
@@ -31,6 +34,7 @@ class CylinderWindow extends JFrame implements GLEventListener, KeyListener, Mou
 
 	// OpenGL variables
 	private GLU glu;
+	private GLUT glut;
 	private GLCapabilities caps;
 	private GLCanvas canvas;
 
@@ -48,6 +52,14 @@ class CylinderWindow extends JFrame implements GLEventListener, KeyListener, Mou
 	// Variables to be passed in to the constructor
 	int imageW = 0, imageH = 0;
 	double[] xLocs, yLocs, minorA, rotateAng, cylAng;
+	boolean lightOn = false;
+	int percents = 100;
+		
+	// Array of which cylinders are randomly chosen if percents != 100
+	int[] chosenParts;
+	
+	// Eh? What's this do...?
+	boolean teapots = false;
 
 	// Length/height of the cylinders
 	final float height = 400;
@@ -82,14 +94,17 @@ class CylinderWindow extends JFrame implements GLEventListener, KeyListener, Mou
 	 * @param cylAngle An array of the computed angles for each cylinder.
 	 * @param w The image's width in pixels.
 	 * @param h The image's height in pixels.
+	 * @param flag Specifies whether lighting should be turned on or off.
+	 * @param perParts Percentage of cylinders to display.
 	 */
-	public CylinderWindow(double[] x, double[] y, double[] minAxis, double[] rotAngle, double[] cylAngle, int w, int h)
+	public CylinderWindow(double[] x, double[] y, double[] minAxis, double[] rotAngle, double[] cylAngle, int w, int h, boolean flag, int perParts)
 	{
 		// Sets the title for the JFrame
 		super("Filament 3-D Representation");
 
 		// Initializes the OpenGL variables
 		glu = new GLU();
+		glut = new GLUT();
 		quad = glu.gluNewQuadric();
 
 		// Assigns the passed-in data to the class variables
@@ -100,6 +115,8 @@ class CylinderWindow extends JFrame implements GLEventListener, KeyListener, Mou
 		minorA = minAxis;
 		rotateAng = rotAngle;
 		cylAng = cylAngle;
+		lightOn = flag;
+		percents = perParts;
 
 		// Initializes the GLCapabilities object and specifies that we want double buffering
 		caps = new GLCapabilities();
@@ -112,7 +129,14 @@ class CylinderWindow extends JFrame implements GLEventListener, KeyListener, Mou
 		canvas.addMouseListener(this); // Sets the Mouse Listener
 		canvas.addMouseMotionListener(this); // Sets the Mouse Motion Listener
 		getContentPane().add(canvas); // Adds the GLCanvas to the JFrame
+		
+		if (percents != 100)
+		{
+			randomCylinders();
+		}
 	}
+	
+	
 
 	/**
 	 * The "main" method of the class. Sets properties for the JFrame and makes it visible.
@@ -149,12 +173,15 @@ class CylinderWindow extends JFrame implements GLEventListener, KeyListener, Mou
 		// Enables the normalization of normal vectors
 		gl.glEnable(GL.GL_NORMALIZE);
 
-		// Sets lighting properties
-		gl.glLightfv(GL.GL_LIGHT0, GL.GL_POSITION, lightPosition, 0);
-		gl.glLightfv(GL.GL_LIGHT0, GL.GL_AMBIENT, light_ambient, 0);
-		gl.glLightfv(GL.GL_LIGHT0, GL.GL_DIFFUSE, light_diffuse, 0);
-		gl.glLightfv(GL.GL_LIGHT0, GL.GL_SPECULAR, light_specular, 0);
-		gl.glLightfv(GL.GL_LIGHT0, GL.GL_SHININESS, light_shininess, 0);
+		if (lightOn)
+		{
+			// Sets lighting properties
+			gl.glLightfv(GL.GL_LIGHT0, GL.GL_POSITION, lightPosition, 0);
+			gl.glLightfv(GL.GL_LIGHT0, GL.GL_AMBIENT, light_ambient, 0);
+			gl.glLightfv(GL.GL_LIGHT0, GL.GL_DIFFUSE, light_diffuse, 0);
+			gl.glLightfv(GL.GL_LIGHT0, GL.GL_SPECULAR, light_specular, 0);
+			gl.glLightfv(GL.GL_LIGHT0, GL.GL_SHININESS, light_shininess, 0);
+		}
 		// Sets the matrix mode to Projection to set the orthographic view
 		gl.glMatrixMode(GL.GL_PROJECTION);
 		// Loads the identity matrix
@@ -163,6 +190,40 @@ class CylinderWindow extends JFrame implements GLEventListener, KeyListener, Mou
 		gl.glOrtho(-(imageW), (imageW), -(imageH), (imageH), -(imageW + imageH), (imageW + imageH));
 		// Returns the matrix mode to the Model View for 3-D display
 		gl.glMatrixMode(GL.GL_MODELVIEW);
+	}
+	
+	/**
+	 * Decides (via Random) which cylinders should be drawn if the user
+	 * specified that only a certain percentage should be in the rendering.
+	 */
+	public void randomCylinders()
+	{
+		Random RNG = new Random();
+		
+		chosenParts = new int[(int)(xLocs.length * (percents/100.0f))];
+		
+		for (int i = 0; i < chosenParts.length; i++)
+		{
+			boolean goAgain = false;
+			do
+			{
+				goAgain = false;
+				int tmp = RNG.nextInt(xLocs.length);
+				
+				for (int j = 0; j < i; j++)
+				{
+					if (chosenParts[j] == tmp)
+					{
+						goAgain = true;
+					}
+				}
+				if (!goAgain)
+				{
+					chosenParts[i] = tmp;
+				}
+			}
+			while (goAgain);
+		}
 	}
 
 	/**
@@ -181,9 +242,12 @@ class CylinderWindow extends JFrame implements GLEventListener, KeyListener, Mou
 		// Loads the identity matrix
 		gl.glLoadIdentity();
 
-		// Enables lighting and the specified light for the projection
-		gl.glEnable(GL.GL_LIGHTING);
-		gl.glEnable(GL.GL_LIGHT0);
+		if (lightOn)
+		{
+			// Enables lighting and the specified light for the projection
+			gl.glEnable(GL.GL_LIGHTING);
+			gl.glEnable(GL.GL_LIGHT0);
+		}
 
 		// Pushes the current matrix to the stack
 		gl.glPushMatrix();
@@ -197,14 +261,28 @@ class CylinderWindow extends JFrame implements GLEventListener, KeyListener, Mou
 		// Sets up the boundaries of the sample box
 		drawBoundingBox(drawable);
 
-		// Draws each of the cylinders
-		for(int i = 0; i < xLocs.length; i++)
+		if (percents == 100)
 		{
-			drawCylinders(drawable, xLocs[i], yLocs[i], minorA[i], rotateAng[i], cylAng[i]);
+			// Draws each of the cylinders
+			for(int i = 0; i < xLocs.length; i++)
+			{
+				drawCylinders(drawable, xLocs[i], yLocs[i], minorA[i], rotateAng[i], cylAng[i], lightOn);
+			}
+		}
+		else
+		{
+			// Draws the randomly selected cylinders
+			for(int i = 0; i < chosenParts.length; i++)
+			{
+				drawCylinders(drawable, xLocs[chosenParts[i]], yLocs[chosenParts[i]], minorA[chosenParts[i]], rotateAng[chosenParts[i]], cylAng[chosenParts[i]], lightOn);
+			}
 		}
 
-		// Disables lighting
-		gl.glDisable(GL.GL_LIGHTING);
+		if (lightOn)
+		{
+			// Disables lighting
+			gl.glDisable(GL.GL_LIGHTING);
+		}
 
 		// Pops the above matrix pushes off of the stack
 		gl.glPopMatrix();
@@ -284,8 +362,9 @@ class CylinderWindow extends JFrame implements GLEventListener, KeyListener, Mou
 	 * @param rad The cylinder's radius. Comes from the minor axis length of the ellipse.
 	 * @param XYRotation The angle measurement (in degrees) that the cylinder must be rotated by to line it up with the ellipse (removal of axial alignment).
 	 * @param CylRotation The height angle measurement (in degrees) that the cylinder must be rotated to produce the correct ellipse in 2-D.
+	 * @param light Boolean specifying whether lighting is on or off.
 	*/
-	void drawCylinders(GLAutoDrawable drawable, double x, double y, double rad, double XYRotation, double CylRotation)
+	void drawCylinders(GLAutoDrawable drawable, double x, double y, double rad, double XYRotation, double CylRotation, boolean light)
 	{
 		// Gets the current GL object
 		GL gl = drawable.getGL();
@@ -305,16 +384,33 @@ class CylinderWindow extends JFrame implements GLEventListener, KeyListener, Mou
 		gl.glTranslatef(0, -height/2, 0);
 		// Rotates the cylinder to be upright, base at y=0, top at y=height
 		gl.glRotatef(-90, 1, 0, 0);
-		// Applies lighting properties
-		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_EMISSION, clear_mat, 0);
-		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_AMBIENT, mat_emission2, 0);
-		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_DIFFUSE, mat_emission2, 0);
-		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_SPECULAR, mat_emission2, 0);
-		gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_SHININESS, light_shininess, 0);
-		// Builds the cylinder using the quadric object
-		// Top and bottom of cylinder have same radius
-		// cylinder is height units high
-		glu.gluCylinder(quad, (float) rad, (float) rad, height, 10, 10);
+		
+		if (light)
+		{
+			// Applies lighting properties
+			gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_EMISSION, clear_mat, 0);
+			gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_AMBIENT, mat_emission2, 0);
+			gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_DIFFUSE, mat_emission2, 0);
+			gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_SPECULAR, mat_emission2, 0);
+			gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_SHININESS, light_shininess, 0);
+		}
+		else
+		{
+			float[] mat = {0.5f, 0.5f, 0.5f, 1.0f};
+			gl.glMaterialfv(GL.GL_FRONT_AND_BACK, GL.GL_EMISSION, mat, 0);
+		}
+		
+		if(!teapots)
+		{
+			// Builds the cylinder using the quadric object
+			// Top and bottom of cylinder have same radius
+			// cylinder is height units high
+			glu.gluCylinder(quad, (float) rad, (float) rad, height, 10, 10);
+		}
+		else
+		{
+			glut.glutWireTeapot((float) rad);
+		}
 
 		// Pops the top matrix off of the stack
 		gl.glPopMatrix();
@@ -388,12 +484,28 @@ class CylinderWindow extends JFrame implements GLEventListener, KeyListener, Mou
 				dispose();
 				break;
 
+			// Resets the 3-D view to its initial angle and positioning
 			case KeyEvent.VK_EQUALS:
 				angle = 20;
 				angle2 = 15;
 				canvas.display();
 				break;
-
+				
+			// Not sure what this is for...
+			case '`':
+				if(!teapots)
+				{
+					teapots = true;
+					canvas.display();
+					break;
+				}
+				else
+				{
+					teapots = false;
+					canvas.display();
+					break;
+				}
+				
 			default:
 				break;
 		}

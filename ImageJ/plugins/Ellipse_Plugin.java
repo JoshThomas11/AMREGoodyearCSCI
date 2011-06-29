@@ -14,7 +14,7 @@
  * Special thanks to:
  * Dr. John Ramsay, Professor of Mathematics and Computer Science at The College of Wooster
  *
- * Date last modified: June 28, 2011
+ * Date last modified: June 29, 2011
  * Version: 0.5
 */
 
@@ -42,6 +42,7 @@ import java.util.*;
  * +--------------------+
  *
  * CylinderWindow.java
+ * EllipseOption.java
  *
 */
 
@@ -78,6 +79,21 @@ public class Ellipse_Plugin implements PlugInFilter
 	{
 		imp = inIMP;
 		return DOES_ALL;
+	}
+	
+	/**
+	 * Pauses execution for a specific amount of time.
+	 *
+	 * @param	milliseconds Time to pause in milliseconds
+	 */
+	void pause(long milliseconds)
+	{
+		try
+		{
+			// Suspends the thread for the specified amount of time
+			Thread.sleep(milliseconds);
+		}
+		catch (InterruptedException e) {}
 	}
 
 	/**
@@ -123,9 +139,17 @@ public class Ellipse_Plugin implements PlugInFilter
 			XYAng[i] = rt.getValue("Angle", i);
 			cylAng[i] = (180/Math.PI)*Math.acos(minA[i]/majA[i]);
 		}
+		
+		EllipseOption eo = new EllipseOption();
+		eo.start();
+		
+		while (!eo.finished)
+		{
+			pause(1500);
+		}
 
 		// Calls Cylinder Window class to do OpenGL stuff
-		CylinderWindow cw = new CylinderWindow(xLoc, yLoc, minA, XYAng, cylAng, imp.getWidth(), imp.getHeight());
+		CylinderWindow cw = new CylinderWindow(xLoc, yLoc, minA, XYAng, cylAng, imp.getWidth(), imp.getHeight(), eo.lightingCheck, eo.percentParticles);
 		cw.run();
 		
 		// Re-locks the image

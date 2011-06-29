@@ -9,12 +9,13 @@
  * distribution that was obtained from a cross-section scan of rubber by an electron
  * microscope.
  *
- * Written by: Benn Snyder - benn.snyder@gmail.com
- *			   Ruth Steinhour - rasteinhour@gmail.com
- *			   Joshua Thomas - jet4416@gmail.com
+ * Written by:
+ * Benn Snyder - benn.snyder@gmail.com
+ * Ruth Steinhour - rasteinhour@gmail.com
+ * Joshua Thomas - jet4416@gmail.com
  *
- * Date last modified: June 16, 2011
- * Version: 0.7
+ * Date last modified: June 28, 2011
+ * Version: 0.7.5
 */
 
 /*
@@ -32,7 +33,7 @@ import ij.measure.ResultsTable;
 
 // Java Packages
 import java.awt.*;
-
+import java.util.*;
 
 /*
  * +--------------------+
@@ -61,7 +62,7 @@ import java.awt.*;
  *
  * @author		Benn Snyder
  * @author		Josh Thomas
- * @version		0.6.7, 06/17/11
+ * @version		0.7.5, 06/28/11
  */
 public class New_Plugin implements PlugInFilter
 {
@@ -71,6 +72,14 @@ public class New_Plugin implements PlugInFilter
 	ImagePlus impCopy;
 	ImageProcessor ipCopy;
 
+	/**
+	 * Setup function required by PlugInFilter.
+	 *
+	 * @param arg Argument passed into the plugin.
+	 * @param inIMP The ImagePlus object currently active in ImageJ.
+	 *
+	 * @return Flag that lists the capabilities of the plugin.
+	*/
 	public int setup(String arg, ImagePlus inIMP)
 	{
 		imp = inIMP;
@@ -83,7 +92,7 @@ public class New_Plugin implements PlugInFilter
 	 *
 	 * @param	milliseconds Time to pause in milliseconds
 	 */
-	static void pause(long milliseconds)
+	void pause(long milliseconds)
 	{
 		try
 		{
@@ -294,6 +303,111 @@ public class New_Plugin implements PlugInFilter
 	}
 
 	/**
+	 * Computes the distance between two centers of mass.
+	 *
+	 * @param c11 The first coordinate of the first particle.
+	 * @param c12 The second coordinate of the first particle.
+	 * @param c21 The first coordinate of the second particle.
+	 * @param c22 The second coordinate of the second particle.
+	 *
+	 * @return The Euclidean distance between the two particles.
+	*/
+	double computeDistance(double c11, double c12, double c21, double c22)
+	{
+		return Math.sqrt(Math.pow(c11-c21,2)+Math.pow(c12-c22,2));
+	}
+
+	/**
+	 * Finds the avergae RDF.
+	 *
+	 * @param count The number of particles.
+	 * @param locs The (x,y,z) locations of the particles.
+	 * @param idx1 Specifies what the first coordinate is for each particle (x, y, or z).
+	 * @param idx2 Specifies what the second coordinate is for each particle (x, y, or z).
+	 * @param w The image's width.
+	 * @param h The image's height.
+	 *
+	 * @return The average number of particles in each bin.
+	*/
+	double[] getBinAvg(int count, double[][] locs, int idx1, int idx2, int w, int h)
+	{
+		// Multi-dimensional array to store the distances between particles
+		double[][] partDists = new double[count][count];
+
+		// Computes the distances between the particles
+		for (int i = 0; i < count; i++)
+		{
+			for (int j = 0; j < count; j++)
+			{
+				// Particle's distance to itself is 0
+				if(j == i)
+				{
+					partDists[i][j] = 0;
+				}
+				// Otherwise, compute distance
+				else
+				{
+					partDists[i][j] = computeDistance(locs[i][idx1], locs[i][idx2], locs[j][idx1], locs[j][idx2]);
+				}
+			}
+		}
+
+		// Computes length of diagonal of image to be used as maximum search radius
+		int maxRad = (int)(Math.sqrt(Math.pow(w,2)+Math.pow(h,2)));
+		// Number of radial bins
+		int numPartBin = 30; // Placeholder value - eventually will be a factor of maxRad
+		// Change in radius
+		int deltaRad = maxRad/numPartBin;
+		// Counter variable representing number of bins
+		int partCount = 0;
+
+		// Stores number of particles in each radial bin
+		int[][] binCount = new int[count][numPartBin];
+
+		// Computes number of particles in each radial bin
+		for (int i = 0; i < count; i++)
+		{
+			// Resets the counter
+			partCount = 0;
+			// Starts at change in radius, increases by change in radius at each pass
+			for(int radius = deltaRad; radius <= maxRad; radius+=deltaRad)
+			{
+				// Summing variable
+				int loopSum = 0;
+				for(int j = 0; j < count; j++)
+				{
+					// If the distance between particles i and j falls in the range (previous radius, current radius],
+					// then the number of particles increases by 1
+					if((partDists[i][j] > (radius - deltaRad)) && (partDists[i][j] <= radius))
+					{
+						loopSum++;
+					}
+				}
+				// Assigns number of particles to binCount
+				binCount[i][partCount] = loopSum;
+				// Increment counter
+				partCount++;
+			}
+		}
+
+		// Stores average number of particles per radial bin
+		double[] binAvg = new double[numPartBin];
+
+		// Computes average number of particles per radial bin
+		for (int i = 0; i < numPartBin; i++)
+		{
+			for (int j = 0; j < count; j++)
+			{
+				binAvg[i] = binCount[j][i];
+			}
+			//binAvg[i] /= count;
+			binAvg[i] /= (count-1); // Not sure whether this is right or not?
+		}
+
+		return binAvg;
+	}
+
+	/**
 	 * Main driving method for the New_Plugin class. Executes the main functionality for the class.
 	 *
 	 * @param inIP An ImageProcessor object that is used to work with the image.
@@ -379,7 +493,6 @@ public class New_Plugin implements PlugInFilter
 		int nBins = numBins(data, rt);
 		binWidth = (max/(nBins+1));
 
-
 		double[] Na = Alg.getNa(data, nBins, binWidth, imp.getWidth() * imp.getHeight());
 
 		// Computes Nv for thickness = 0 pixels
@@ -409,9 +522,11 @@ public class New_Plugin implements PlugInFilter
 			}
 		}
 
+		// Growth rate computations (values for alpha)
 		double[][] combinedNaNv = new double[nBins+1][4];
 		double area = imp.getWidth() * imp.getHeight();
 		double sumNa = 0, sumNv0 = 0, sumNv50 = 0, sumNv100 = 0;
+		// Computes sums of particle size distributions
 		for(int i = 0; i < Na.length; i++)
 		{
 			sumNa += Na[i];
@@ -419,6 +534,7 @@ public class New_Plugin implements PlugInFilter
 			sumNv50 += results2[i];
 			sumNv100 += results3[i];
 		}
+		// Finds number of particles in bins
 		for(int i = 0; i <= nBins; i++)
 		{
 			combinedNaNv[i][0] = Na[i]*area;
@@ -427,10 +543,10 @@ public class New_Plugin implements PlugInFilter
 			combinedNaNv[i][3] = results3[i]*area*(sumNa/sumNv100);
 		}
 
+		// Computes alpha values for 2-D -> 3-D (H=0), 2-D -> 3-D (H=50), and 2-D -> 3-D (H=100)
 		double alpha0 = Alg.getAlpha(combinedNaNv, binWidth, rt.getCounter(), 1);
 		double alpha1 = Alg.getAlpha(combinedNaNv, binWidth, rt.getCounter(), 2);
 		double alpha2 = Alg.getAlpha(combinedNaNv, binWidth, rt.getCounter(), 3);
-
 
 		// Creates and launchs the PDF Window, which produces the PDFs for Na and the selected Nv sets
 		if(ow.PDFCheck)
@@ -450,16 +566,28 @@ public class New_Plugin implements PlugInFilter
 			gw.start();
 		}
 
-		double[][] centroids = new double[rt.getCounter()][2];
+		// New random number generator
+		Random RNG = new Random();
 
+		// Holds the (x,y,z) locations of each particle's center of mass
+		double[][] centroids = new double[rt.getCounter()][3];
+
+		// Grabs and stores the centroid information
 		for (int i = 0; i < centroids.length; i++)
 		{
+			// Center of mass in x
 			centroids[i][0] = rt.getValue("XM", i);
+			// Center of mass in y
 			centroids[i][1] = rt.getValue("YM", i);
+			// "Center of mass" in z - defined by a normal distribution
+			centroids[i][2] = RNG.nextGaussian();
 		}
 
-		//WindowManager.setCurrentWindow(new ImageWindow(impCopy));
-
+		// Computes the bin counts in each 2-D plane: XY, XZ, and YZ
+		// Used for average RDF
+		double[] binCountXY = getBinAvg(rt.getCounter(), centroids, 0, 1, imp.getWidth(), imp.getHeight());
+		double[] binCountXZ = getBinAvg(rt.getCounter(), centroids, 0, 2, imp.getWidth(), imp.getHeight());
+		double[] binCountYZ = getBinAvg(rt.getCounter(), centroids, 1, 2, imp.getWidth(), imp.getHeight());
 
 		if (ow.percentParticles > 0)
 		{
